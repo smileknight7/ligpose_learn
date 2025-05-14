@@ -7,7 +7,7 @@ split_rate = [0.8, 0.1, 0.1]  # 80% 训练, 10% 验证, 10% 测试
 
 labeled_set_path = "/root/work_file/refined_set_preprocessed"
 unlabeled_set_path = "/root/work_file/general_set_preprocessed"
-
+# 确保路径存在
 # 调用函数
 train_list, val_list, test_list = split_pdbbind_semi(
     split_rate=split_rate,

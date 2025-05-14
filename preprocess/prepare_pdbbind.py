@@ -27,15 +27,15 @@ if __name__ == '__main__':
 #argparse是python内置的命令行参数解析模块
     # data source
     parser.add_argument('--data_path', type=str,
-                        default= '/root/ligpose_data/general_set_10', help='data path')
+                        default= '/home/smileknight/learn/ligpose_data/general_set_10', help='data path')
     parser.add_argument('--data_suppl_path', type=str,
-                        default= '/root/ligpose_data/INDEX_general_PL.txt', help='suppl path')
+                        default= '/home/smileknight/learn/ligpose_data/INDEX_general_PL.txt', help='suppl path')
 
     # output
     parser.add_argument('--output_path', type=str,
-                        default= '/root/work_file/tmp', help='prepared path')
+                        default= '/home/smileknight/learn/work_file/tmp', help='prepared path')
     parser.add_argument('--cache', type=str,
-                        default= '/root/work_file/cache', help='tmp path')
+                        default= '/home/smileknight/learn/work_file/cache', help='tmp path')
 
     args = parser.parse_args()
     #这行代码是在解析命令行参数，上面的add_argument(）模块是传递命令行参数进去
