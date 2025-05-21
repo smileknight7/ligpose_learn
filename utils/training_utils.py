@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.common import save_idx_list, load_idx_list, delmkdir, is_tensor
 
 
-
+#传入参数，使用GPU进行训练
 def train_with_args(args, train):
     if args.use_multi_gpu:
         # os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
@@ -64,43 +64,73 @@ def set_gpu_device(rank, world_size, port, args):
 #     return train_list, val_list, test_list
 
 
+############----------------###########
+#此处进行了修改，添加了引入无标签数据的部分
+############----------------###########
+        
+
 
 #保存数据集划分
-def save_data_split(train_list, val_list, test_list, path='./'):
+def save_data_split(train_list_labeled, val_list_labeled, test_list_labeled, 
+                    train_list_unlabeled= None, path='./'):
     delmkdir(path, remove_old=False)
-    save_idx_list(train_list, f'{path}/train_list.txt')
-    save_idx_list(val_list, f'{path}/val_list.txt')
-    save_idx_list(test_list, f'{path}/test_list.txt')
-
-#这里没有建立无标签数据也就是general_set的列表，后面还是要再考虑一下
-
-
-
+    save_idx_list(train_list_labeled, f'{path}/train_list_labeled.txt')
+    save_idx_list(val_list_labeled, f'{path}/val_list_labeled.txt')
+    save_idx_list(test_list_labeled, f'{path}/test_list_labeled.txt')
+    
+    if train_list_unlabeled is not None:
+        save_idx_list(train_list_unlabeled, f'{path}/train_list_unlabeled.txt')
 
 
-def get_dataloader(args, train_dataset, val_dataset, world_size, collate_fn):
+
+
+
+
+#为gpu创建分布式采样器,使用DistributedSampler可以在pytorch的分布式训练中对训练数据进行分片和打乱
+#内部的参数包括，要采样的数据集，总进程数，当前进程编号rank，以及是否需要进行打乱
+
+#训练数据加载器，dataloader，此处实现了_len_()和_getitem()方法，
+        
+
+
+def get_dataloader(args, train_dataset_labeled, train_dataset_unlabeled, 
+                   val_dataset, world_size, collate_fn):
     if args.use_multi_gpu:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, num_replicas=world_size,
+        #有标签数据
+        train_sampler_labeled = torch.utils.data.distributed.DistributedSampler(train_dataset_labeled, num_replicas=world_size,
                                                                         rank=args.rank, shuffle=True)
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                                                   sampler=train_sampler, num_workers=args.num_workers,
+        train_loader_labeled = torch.utils.data.DataLoader(dataset=train_dataset_labeled, batch_size=args.batch_size,
+                                                   sampler=train_sampler_labeled, num_workers=args.num_workers,
                                                    pin_memory=False, persistent_workers=args.persistent_workers,
                                                    prefetch_factor=2, collate_fn=collate_fn)
+        #无标签数据
+        train_sampler_unlabeled = torch.utils.data.distributed.DistributedSampler(train_dataset_unlabeled, num_replicas=world_size,
+                                                                        rank=args.rank, shuffle=True)
+        train_loader_unlabeled = torch.utils.data.DataLoader(dataset=train_dataset_unlabeled, batch_size=args.batch_size,
+                                                    sampler=train_sampler_unlabeled, num_workers=args.num_workers,
+                                                    pin_memory=False, persistent_workers=args.persistent_workers,
+                                                    prefetch_factor=2, collate_fn=collate_fn)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, num_replicas=world_size,
                                                                       rank=args.rank, shuffle=True)
         val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=args.batch_size,
                                                  sampler=val_sampler, num_workers=2, persistent_workers=args.persistent_workers,
                                                  collate_fn=collate_fn)
     else:
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,
+        #非分布式模式
+        train_loader_labeled = torch.utils.data.DataLoader(dataset=train_dataset_labeled, batch_size=args.batch_size,
                                                    num_workers=args.num_workers, shuffle=True,
                                                    pin_memory=False, persistent_workers=args.persistent_workers,
                                                    prefetch_factor=2, collate_fn=collate_fn)
+        train_loader_unlabeled = torch.utils.data.DataLoader(dataset=train_dataset_unlabeled, batch_size=args.batch_size,
+                                                   num_workers=args.num_workers, shuffle=True,
+                                                   pin_memory=False, persistent_workers=args.persistent_workers,
+                                                   prefetch_factor=2, collate_fn=collate_fn)
+        
         val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=args.batch_size,
                                                  num_workers=2, shuffle=True, persistent_workers=args.persistent_workers,
                                                  collate_fn=collate_fn)
-        train_sampler = val_sampler = None
-    return train_loader, train_sampler, val_loader, val_sampler
+        train_sampler_labeled = train_sampler_unlabeled = val_sampler = None
+    return train_loader_labeled, train_sampler_labeled, train_loader_unlabeled, train_sampler_unlabeled, val_loader, val_sampler
 
 
 class CustomOptimization():

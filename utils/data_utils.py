@@ -6,6 +6,26 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 
 
+#########------------------------########
+#读取.npz文件
+#########------------------------########
+
+
+data = np.load('your_file.npz')
+
+# 查看文件中包含的数组名称
+print(data.files)
+
+# 访问特定的数组
+array1 = data['array_name1']
+array2 = data['array_name2']
+
+# 使用完毕后关闭文件
+data.close()
+
+
+
+
 def batch_index_select(x, idx):
     # select data with gather
     # x =  torch.stack([torch.index_select(x_i, 0, idx_i) for x_i, idx_i in zip(x, idx)], dim=0)
