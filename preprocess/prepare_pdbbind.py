@@ -1,8 +1,13 @@
+
+
+import pickle
 import os
 import shutil
 import sys
 sys.path.append('/'.join(os.path.abspath(__file__).split('/')[:-2]))
 import argparse
+#这一段是依照目前的目录来按照顺序找到上上级目录，并进行提取
+#abspath(__file__).split('/')[:-2]))。。。'/'.join是将路径重新拼接起来
 
 import numpy as np
 from tqdm import tqdm, trange
@@ -12,11 +17,13 @@ from ray.util.multiprocessing import Pool
 from utils.common import delmkdir, print_args
 from utils.pdbbind_preprocess import process_pdbbind, try_prepare_pdbbind
 
-
+#定义task作为process的传入变量
+#将task任务进行拆包并提取内部的元素
 def process(task):
     pdb_id, data_path, suppl_path, output_path, cache_path = task
     dic_data = process_pdbbind(pdb_id, data_path, suppl_path, cache_path)
-    # pickle.dump(dic_data, open(f'{output_path}/{pdb_id}.pkl', 'wb'))
+    # print(f"{pdb_id}: {dic_data is not None}")检验是否能够构建dic_data字典
+    pickle.dump(dic_data, open(f'{output_path}/{pdb_id}.pkl', 'wb'))
     np.savez_compressed(f'{output_path}/{pdb_id}.npz', **dic_data)
     return True
 
@@ -46,7 +53,7 @@ if __name__ == '__main__':
     delmkdir(args.cache)
 
 
-#利用task列表将pbd数据依次传入
+#构建tasks列表，将使用的函数，传入的参数交给多进程池
 
     print('Preparing tasks...')
     tasks = []
@@ -60,6 +67,7 @@ if __name__ == '__main__':
     # sys.exit()
 
     #构建多任务进程池来处理任务列表并统计失败的任务数量
+    #fail是用来初始化计数器，以统计失败任务 pool.map（）会将任务分配到进程池中，让多个任务同时运行
     pool = Pool()
     fail = 0
     for r in pool.map(try_prepare_pdbbind, tasks):
@@ -69,7 +77,7 @@ if __name__ == '__main__':
     #扫除缓存文件
     shutil.rmtree(args.cache)
     print('='*20 + 'DONE' + '='*20)
-
+    #:.2f表示保留两位小数
 
 
 

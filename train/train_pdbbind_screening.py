@@ -14,9 +14,9 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 from model.layers import LigPoseScr
 from model.loss import ScreenLoss
-from utils.pdbbind_utils import split_pdbbind, ComplexScreeningDataset, collate_screening
+from pdbbind_utils_revise import split_pdbbind_semi, ComplexScreeningDataset, collate_screening
 from model.param_setting import get_LigPose_params
-from utils.training_utils import *
+from training_utils_revise import *
 from utils.common import *
 
 
@@ -26,7 +26,7 @@ args = {
     'core_list_path': './data/refined_set/'
 }
 
-
+#构建分布式训练函数，rank是指定第几个gpu，world_size是指一共使用多少gpu，port是指初始化时要用的端口号
 def train(rank, world_size, port, args):
     ####################################################################################################################
     # Set GPU device
@@ -43,22 +43,54 @@ def train(rank, world_size, port, args):
     if rank == 0 or not args.use_multi_gpu:
         print('Initializing model...')
     my_model = LigPoseScr(args).to(rank)
+    #    if args.choose_start_weight is not None:
+    #这里是将模型上传到gpu的主进程中
     if rank == 0 or not args.use_multi_gpu:
         summarize_model(my_model)
     if args.use_multi_gpu:
         my_model = torch.nn.parallel.DistributedDataParallel(my_model, device_ids=[rank], find_unused_parameters=True)
+    #这里是对模型进行DistributedDataParallel包装，以便进行分布式训练
     if args.choose_main_net_start_weight is not None:
         my_model.module.main_net.load_state_dict(
             torch.load(args.choose_main_net_start_weight, map_location=f'cuda:{rank}')['model_state_dict'], strict=True)
 
-    # dataset
+
+
+    # dataset origin
+    #     if rank == 0 or not args.use_multi_gpu:
+    #     print('Loading dataset...')
+    # if (not check_data_split(path=args.data_list_path)) or args.regenerate_data_list:
+    #     if rank == 0 or not args.use_multi_gpu:
+    #         print('Generating data list...')
+    #     train_list, val_list, test_list = split_pdbbind(args.pdbbind_path, args.data_split_rate, core_list_path=args.core_list_path)
+    #     save_data_split(train_list, val_list, test_list, path=args.data_list_path)
+    # train_list, val_list, test_list = load_data_split(path=args.data_list_path, blind_training=args.blind_training)
+    # if rank == 0 or not args.use_multi_gpu:
+    #     print(f'train_list: {len(train_list)}, val_list: {len(val_list)}, test_list: {len(test_list)}')
+    # train_dataset = ComplexScreeningDataset('train', args, train_list, cache_path=args.cache_path)
+    # val_dataset = ComplexScreeningDataset('val', args, val_list, cache_path=args.cache_path)
+    # train_loader, train_sampler, val_loader, val_sampler = get_dataloader(args, train_dataset, val_dataset,
+    #                                                                       world_size, collate_fn=collate_screening)
+    # train_loader.dataset.training = True
+    # val_loader.dataset.training = False
+
+
+
+#dataset
+        
     if rank == 0 or not args.use_multi_gpu:
         print('Loading dataset...')
+    #检查数据集是否进行划分
     if (not check_data_split(path=args.data_list_path)) or args.regenerate_data_list:
         if rank == 0 or not args.use_multi_gpu:
             print('Generating data list...')
-        train_list, val_list, test_list = split_pdbbind(args.pdbbind_path, args.data_split_rate, core_list_path=args.core_list_path)
-        save_data_split(train_list, val_list, test_list, path=args.data_list_path)
+
+        #此处pdbbind_path是定义在当前脚本下面的，data_split_rate定义到了common函数中
+        #这里应该还要再写一下构建无标签数据的函数，这个函数似乎应该写道划分数据集的split_pdbbind_semi的函数里面，或者写在外面调用一下
+            
+        train_list_labeled, val_list_labeled, test_list = split_pdbbind_semi(args.labeled_set_path, args.data_split_rate, core_list_path=args.core_list_path)
+        save_data_split(train_list_labeled, val_list_labeled, test_list,   path=args.data_list_path)
+        
     train_list, val_list, test_list = load_data_split(path=args.data_list_path, blind_training=args.blind_training)
     if rank == 0 or not args.use_multi_gpu:
         print(f'train_list: {len(train_list)}, val_list: {len(val_list)}, test_list: {len(test_list)}')
@@ -69,6 +101,8 @@ def train(rank, world_size, port, args):
     train_loader.dataset.training = True
     val_loader.dataset.training = False
 
+
+#损失函数这里也要放到指定的gpu中
     # # other training objects
     loss_object = ScreenLoss(args).to(rank)
     if args.use_multi_gpu_for_loss_object:

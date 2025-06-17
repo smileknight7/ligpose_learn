@@ -132,12 +132,13 @@ def fix_bool(args):
         new_dic[k] = v
     return argparse.Namespace(**new_dic)
 
-
+#这里是定义了数据的划分比例不论数据是以-、_ 或 ,这三种形式进行输入的都可以作为划分比例
 def split_rate(data_split_rate):
     split_str = None
     for i in ['-', '_', ',']:
         if i in data_split_rate:
             split_str = i
+    #确定划分比例不是空值，按照固定的符号将数据集划分比例建立为一个列表，随后转化为浮点数，确定划分比例之和为1，最终作为输出返回
     assert split_str != None
     data_split_rate = list(map(lambda x: float(x), data_split_rate.split(split_str)))
     assert np.array(data_split_rate).sum() == 1

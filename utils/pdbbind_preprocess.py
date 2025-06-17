@@ -32,6 +32,8 @@ def protein_atom_filter(pdb_lines):
     pdb_lines = [line for line in pdb_lines if line.startswith('ATOM')]
     # pdb_lines = [line for line in pdb_lines if line[13:16] in ['CA ']] #['CA ', 'C  ', 'N  ', 'CB ']
     return pdb_lines
+#这边是进行过滤，以实现对特定元素的提取（ATOM）过滤掉了
+
 
 #设计独热编码，方便后边对元素类型进行标记
 def onehot_with_allowset(x, allowset, with_unk=True):
@@ -254,7 +256,8 @@ def get_ligand_unrotable_distance(ligand_mol):
                 dist_map[i, j] = get_atom_distance(mol_conf, i, j)
     return dist_map
 
-
+#数据集本身是存在mol2，sdf，ppocketpdb以及proteinpdb的
+#首先直接加载mol2文件
 def read_mol_from_pdbbind(data_path, pdb_id):
     ligand_mol2_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.mol2'
     ligand_mol = Chem.MolFromMol2File(ligand_mol2_path)
@@ -278,7 +281,6 @@ def read_mol_from_pdbbind(data_path, pdb_id):
 #此处进行了修改（将pdb信息中的亲和力数据以浮点数的形式进行提取）
 ############-------------############
 
-info_path = r'/root/ligpose_data/INDEX_refined_set_10.txt'
 
 def get_aff(info_path):
     lines = open(info_path, 'r').readlines()
@@ -314,8 +316,18 @@ def get_aff(info_path):
     return dic_aff
 
 
+#debug
+
+# from rdkit import Chem
+# data_path = "/home/smileknight/learn/ligpose_data/general_set_10"
+# suppl_path = "/home/smileknight/learn/ligpose_data/INDEX_general_PL.txt"
+# cache_path = "/home/smileknight/learn/work_file/cache"
 
 
+
+
+
+#此处需要看下上面的代码，看看这里的工具函数
 def process_pdbbind(pdb_id, data_path, suppl_path, cache_path, dis=15):
     # =========== ligand encoding ===========
     ligand_mol = read_mol_from_pdbbind(data_path, pdb_id)
@@ -326,16 +338,22 @@ def process_pdbbind(pdb_id, data_path, suppl_path, cache_path, dis=15):
     ligand_distmap = get_ligand_unrotable_distance(ligand_mol)
 
 
-    # =========== protein encoding ===========
+    # =========== protein encoding ===========#没有使用pocket中的pdb信息，而是直接从蛋白质pdb中构建pocket的mol2文件
+    #读取PDB为多个表格，从中找到ATOM这一列进行提取
     pdb_in_path = f'{data_path}/{pdb_id}/{pdb_id}_protein.pdb'
     biodf_protein = PandasPdb().read_pdb(pdb_in_path)
     df_protein = biodf_protein.df['ATOM']
 
+    #将蛋白质的原子信息和配体的位置传入，通过get_pocket函数来获取蛋白质口袋信息
+    #biodf_protein.df['ATOM']这个变量要注意，会不会引起混淆
+    #下面最后一句是在将提取的口袋信息转化为pdb的形式进行储存
     df_pocket = get_pocket(df_protein, ligand_true_posi, dis=dis, any_atom=True)
     biodf_protein.df['ATOM'] = df_pocket
     tmp_pocket_file = cache_path + f'/{pdb_id}.pdb'
     biodf_protein.to_pdb(tmp_pocket_file)
-
+    
+    #读取临时文件中的内容随后提取有效原子信息，构建protein_string,
+    #但是protein_mol文件也是利用RDkit依照protein_string构建的
     protein_lines = open(tmp_pocket_file, 'r').readlines()
     protein_string = ''.join(protein_atom_filter(protein_lines))
     protein_mol = Chem.MolFromPDBBlock(protein_string)
@@ -352,10 +370,12 @@ def process_pdbbind(pdb_id, data_path, suppl_path, cache_path, dis=15):
 
 
     # =========== suppl info ===========
+    #这里的中括号作用是字典访问，意思是先加载suppl_path的数据随后访问pdb_id
     aff = get_aff(suppl_path)[pdb_id]
 
-
-
+# data = process_pdbbind(pdb_id, data_path, suppl_path, cache_path)
+# protein_lines = open(tmp_pocket_file, 'r').readlines()
+# print(f"[DEBUG] Loaded {len(protein_lines)} lines from {tmp_pocket_file}")
 
     return dict(protein_node_features=protein_node_features,
                 protein_edge_features=protein_edge_features,
@@ -370,14 +390,17 @@ def process_pdbbind(pdb_id, data_path, suppl_path, cache_path, dis=15):
 
                 aff=aff,
                 )
+    
 
 
+#这部分感觉数据不对，这个函数后面没有使用了，这边应该是和
 def gen_pdbbind_screening_list(protein_path, ligand_path, prepared_pdbbind_path, save_path):
     protein_info = [line[:-1] for line in open(protein_path, 'r').readlines() if not line.startswith('#')]
     ligand_info = [line[:-1] for line in open(ligand_path, 'r').readlines() if not line.startswith('#')]
 
     protein_info = {line[:4]: (line[12:18], line[20:]) for line in protein_info}  # pdb_id : (uniprot_id, name)
     ligand_info = {line[:4]: line.split(' ')[-1][1:-1] for line in ligand_info}  # pdb_id : name
+    
 
     allow_pair = []  # (protein_pdb_id, ligand_pdb_id)
     for l_pdb_id, l_name in tqdm(ligand_info.items()):
@@ -425,6 +448,8 @@ def gen_pdbbind_screening_list(protein_path, ligand_path, prepared_pdbbind_path,
 #     except:
 #         return False
 
+
+#此处的func和args都是task中的参数
 def try_prepare_pdbbind(task):
     try:
         func, args = task

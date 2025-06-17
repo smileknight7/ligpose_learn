@@ -1,5 +1,5 @@
 import os
-from utils.training_utils import split_pdbbind_semi
+from training_utils_revise import split_pdbbind_semi
 
 # 测试配置
 

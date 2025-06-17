@@ -1,3 +1,6 @@
+import sys
+print(sys.executable)
+
 import os
 import sys
 sys.path.append('/'.join(os.path.abspath(__file__).split('/')[:-2]))
@@ -18,7 +21,13 @@ from utils.pdbbind_utils import split_pdbbind, ComplexStructDataset, collate_str
 from model.param_setting import get_LigPose_params
 from utils.training_utils import *
 from utils.common import *
+print(get_dataloader.__code__)
 
+import inspect
+
+def debug_print(msg):
+    frame = inspect.currentframe().f_back
+    print(f"[{frame.f_code.co_filename}:{frame.f_lineno}] {msg}")
 
 
 def train(rank, world_size, port, args):
@@ -69,7 +78,7 @@ def train(rank, world_size, port, args):
     train_dataset = ComplexStructDataset('train', args, train_list, cache_path=args.cache_path)
     val_dataset = ComplexStructDataset('val', args, val_list, cache_path=args.cache_path)
     train_loader, train_sampler, val_loader, val_sampler = get_dataloader(args, train_dataset, val_dataset,
-                                                                          world_size, collate_fn=collate_struct)
+                                                                          args.world_size, collate_fn=collate_struct)
     train_loader.dataset.training = True
     val_loader.dataset.training = False
 
@@ -184,7 +193,7 @@ if __name__ == '__main__':
 
     # data source
     parser.add_argument('--pdbbind_path', type=str,
-                        default='/home/dtj/work_site/test/tmp',
+                        default='/home/smileknight/learn/work_file/tmp',
                         help='path to prepared data')
     parser.add_argument('--l_npz_path', type=str,
                         default='./',
@@ -201,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--regenerate_data_list', type=str,
                         default=False, help='regenerate data split. (if no file exists)')
     parser.add_argument('--data_list_path', type=str,
-                        default='../eval/pdbbind/core_test',
+                        default='/home/smileknight/learn/LigPose_demo_linux/eval/pdbbind',
                         help='path to data list, core_test/core_test_reduce_train/som_pretrain/som_pretrain_reduce_train/zinc250k')
     parser.add_argument('--data_split_rate', type=str,
                         default='0.75-0.05-0.2',
@@ -212,10 +221,10 @@ if __name__ == '__main__':
 
 
 #以下是修改内容
-    parser.add_argument('--labeled_set_path', type=str,
-                        default='../eval/pdbbind/labeled_list.txt', help='labeled_core set of PDBbind')
-    parser.add_argument('--unlabeled_set_path', type=str,
-                        default='../eval/pdbbind/unlabeled_list.txt', help='unlabeled_general set of PDBbind')
+    # parser.add_argument('--labeled_set_path', type=str,
+    #                     default='../eval/pdbbind/labeled_list.txt', help='labeled_core set of PDBbind')
+    # parser.add_argument('--unlabeled_set_path', type=str,
+    #                     default='../eval/pdbbind/unlabeled_list.txt', help='unlabeled_general set of PDBbind')
 
 
 
@@ -223,17 +232,17 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--core_list_path', type=str,
-                        default='../eval/pdbbind/core_list.txt', help='core set of PDBbind')
+                        default='/home/smileknight/learn/LigPose_demo_linux/eval/pdbbind/core_list.txt', help='core set of PDBbind')
 
 
 
 
+#blind training是指测试集中的样本在训练过程中是完全不可见的，而不是从原本的数据集划分而来
 
-
-    # parser.add_argument('--blind_training', type=str,
-    #                     default=False, help='Blind training')
-    # parser.add_argument('--original_path', type=str,
-    #                     default='/home/dtj/work_site/prepare_data/complex/v2020-PL', help='PDBbind path')
+    parser.add_argument('--blind_training', type=str,
+                        default=False, help='Blind training')
+    parser.add_argument('--original_path', type=str,
+                        default='/home/dtj/work_site/prepare_data/complex/v2020-PL', help='PDBbind path')
 
 
     # training settings

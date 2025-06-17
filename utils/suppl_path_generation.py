@@ -9,10 +9,11 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+import argparse
 
 
 
-info_path = r'D:\Neral network\pythonProject\LigPose_demo\data\INDEX_refined_set.txt'
+info_path = r'/home/smileknight/learn/LigPose_demo_linux/suppl/INDEX_refined_set.txt'
 
 def get_aff(info_path):
     lines = open(info_path, 'r').readlines()
@@ -88,7 +89,7 @@ def process_all_pdbs_in_folder(data_path):
             print(f"无法读取 {pdb_id} 的分子数据")
     return mols
 
-data_path = r'D:\Neral network\pythonProject\LigPose_demo\data\refined_set'
+data_path = r'/home/smileknight/learn/LigPose_demo_linux/suppl/refined_set_10'
 mols = process_all_pdbs_in_folder(data_path)
 print(f"mols 字典包含 {len(mols)} 个分子")
 #打印结果
@@ -100,21 +101,21 @@ for pdb_id, mol in mols.items():
 
 
 print('Preparing tasks...')
-    tasks = []
-    for c in os.listdir(args.data_path):
-        tasks.append((process, (c, args.data_path, args.data_suppl_path, args.output_path, args.cache)))
-    print(f'Task num: {len(tasks)}')
+tasks = []
+for c in os.listdir(args.data_path):
+    tasks.append((process, (c, args.data_path, args.data_suppl_path, args.output_path, args.cache)))
+print(f'Task num: {len(tasks)}')
 
-    print(f'Begin...')
-    # for p, task in tqdm(tasks):
-    #     p(task)
-    # sys.exit()
-    pool = Pool()
-    fail = 0
-    for r in pool.map(try_prepare_pdbbind, tasks):
-        if not r:
-            fail += 1
-    print(f'Success: {len(tasks) - fail}/{len(tasks)}, {(len(tasks) - fail) / len(tasks) * 100:.2f}%')
+print(f'Begin...')
+# for p, task in tqdm(tasks):
+#     p(task)
+# sys.exit()
+pool = Pool()
+fail = 0
+for r in pool.map(try_prepare_pdbbind, tasks):
+    if not r:
+        fail += 1
+print(f'Success: {len(tasks) - fail}/{len(tasks)}, {(len(tasks) - fail) / len(tasks) * 100:.2f}%')
 
-    shutil.rmtree(args.cache)
-    print('='*20 + 'DONE' + '='*20)
+shutil.rmtree(args.cache)
+print('='*20 + 'DONE' + '='*20)

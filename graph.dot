@@ -1,0 +1,14 @@
+digraph G {
+    graph [rankdir=TB];
+    subgraph cluster_G {
+
+        graph [style="filled,rounded",fillcolor="#80808018", label=""];
+        loss [label="loss", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__ScreenLoss [label="ScreenLoss", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__StructLoss [label="StructLoss", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__ScreenLoss____init__ [label="__init__", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__ScreenLoss__forward [label="forward", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__StructLoss____init__ [label="__init__", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+        loss__StructLoss__forward [label="forward", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0"];
+    }
+    }

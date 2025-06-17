@@ -11,27 +11,15 @@ from einops import rearrange, repeat
 #########------------------------########
 
 
-data = np.load('your_file.npz')
-
-# 查看文件中包含的数组名称
-print(data.files)
-
-# 访问特定的数组
-array1 = data['array_name1']
-array2 = data['array_name2']
-
-# 使用完毕后关闭文件
-data.close()
 
 
-
-
+#这里是建立x的索引矩阵
 def batch_index_select(x, idx):
     # select data with gather
     # x =  torch.stack([torch.index_select(x_i, 0, idx_i) for x_i, idx_i in zip(x, idx)], dim=0)
-    assert len(x.shape) - len(idx.shape) == 1
-    idx = repeat(idx, 'b n -> b n d', d=x.size(-1))
-    new_x = torch.gather(x, dim=-2, index=idx)
+    assert len(x.shape) - len(idx.shape) == 1 #使用assert进行判断，如果输出结果是false的话会终止，是true会继续运行
+    idx = repeat(idx, 'b n -> b n d', d=x.size(-1)) #这里是取x的最后一个维度进行复制到idx中以方便使用矩阵索引
+    new_x = torch.gather(x, dim=-2, index=idx) #根据索引找到x中倒数第二个维度中的内容
     return new_x
 
 

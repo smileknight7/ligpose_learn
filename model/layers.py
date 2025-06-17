@@ -8,7 +8,9 @@ from model.GNN import *
 from utils.data_utils import batch_index_select
 
 
+#此处的n_block指堆叠次数，也就是说UpdateBlock会有多少个重复单元
 
+#继承一个来自nn.module的函数并声明其构造函数
 class UpdateBlock(torch.nn.Module):
     def __init__(self,
                  n_block,
@@ -18,6 +20,7 @@ class UpdateBlock(torch.nn.Module):
                  head_hidden,
                  dropout,
                  ):
+        #初始化父类函数，并构建构造函数
         super(UpdateBlock, self).__init__()
         self.n_block = n_block - 1
         self.att_layers = torch.nn.ModuleList([
@@ -35,6 +38,8 @@ class UpdateBlock(torch.nn.Module):
         self.edge_FF_layers = torch.nn.ModuleList([
             GateNormFeedForward(edge_hidden, dropout) for _ in range(self.n_block)
         ])
+        #此处的FF是指前馈神经网(由全连接，非线性以及dropout构成，负责对每个节点或者边特征进行变换或者增强)
+
         self.last_update = GateNormAttention(
             node_hidden,
             edge_hidden,
@@ -43,19 +48,30 @@ class UpdateBlock(torch.nn.Module):
             dropout,
             only_coor_out=True,
         )
+#整体上，这个更新模块是由一层注意力，一层点节点层FF，一层边节点层FF
+#Message Passing (Attention) + Point-wise Feature Update (FF)
+#这种结构是参考transformer实现的，注意力层主要是用于节点和边的信息交互，而前馈神经网络层是用来进行节点和边的更新的
+        
+#FF就是前馈神经网络，也就是Feedforward层
+#最后通过一层注意力层进行输出
+        
 
+
+
+#前向传播
     def forward(self, complex_graph):
         coor_hidden = []
         for i in range(self.n_block):
             complex_graph = self.att_layers[i](complex_graph)
             complex_graph.x = self.node_FF_layers[i](complex_graph.x)
             complex_graph.edge_attr = self.edge_FF_layers[i](complex_graph.edge_attr)
+            
             coor_hidden.append(complex_graph.coor)
         complex_graph = self.last_update(complex_graph)
         coor_hidden.append(complex_graph.coor)
         complex_graph.coor_hidden = torch.stack(coor_hidden, dim=0)
         return complex_graph
-
+#这里有一点点没看懂，为什么对complex_graph进行了堆叠并赋值，很奇怪，还搞了返回值
 
 class LigPoseBase(torch.nn.Module):
     def __init__(self, args):

@@ -12,7 +12,7 @@ import torch_geometric
 from model.layers import LigPose
 from utils.data_utils import pad_zeros, batch_index_select_for_edge, read_rdkit_mol
 from utils.pdbbind_preprocess import *
-from utils.pdbbind_utils import collate_dummy, pred_ens, assign_struct
+from pdbbind_utils_revise import collate_dummy, pred_ens, assign_struct
 from common import *
 
 # if is_notebook():
@@ -306,7 +306,10 @@ def collate_input(batch_list):
 class InferDataset(torch.utils.data.Dataset):
     def __init__(self, args, cache_path, ens=1):
         self.cache_path = cache_path
-        self.data_list = [i.split('.')[0] for i in os.listdir(cache_path)]
+        #这里进行了一定的修改，原本的代码无法正确加载data_list中的内容，
+        #self.data_list = [i.split('.')[0] for i in os.listdir(cache_path)]
+        self.data_list = [f for f in os.listdir(cache_path) if f.endswith('.npz')]
+
         self.ens = ens
 
         # model hyperparameters

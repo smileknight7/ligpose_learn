@@ -73,6 +73,8 @@ class CoorNorm(torch.nn.Module):
 
 #这里实现了一个径向基函数（RBF）编码器，主要用于将距离信息转换为高维特征表示（是分子建模中的一种常见技术）
 #其中要使用高斯核也称之为径向基数，是利用核技巧将隐式的 将数据转换到高维空间，而无需计算高维坐标（距离值相近核值接近1否则接近0）
+
+
 class DistRBF(torch.nn.Module):
     def __init__(self, start=0., stop=2., num_gaussians=50):
         super(DistRBF, self).__init__()
@@ -92,9 +94,18 @@ class DistRBF(torch.nn.Module):
         #                         dim=-1)
         return encode_dist
 
+
+
+
+
 #SE3EquivariantAttention是实现等变注意力机制的模块
 #等变性保持：使模型对3D空间中的旋转和平移变换具有不变性，保证分子坐标旋转后预测结果一致
 #多头注意力准备：设置n_head注意头，每个头有head_hidden维特征
+
+
+
+#attention
+    
 class SE3EquivariantAttention(torch.nn.Module):
     def __init__(self,
                  node_hidden,
@@ -111,8 +122,13 @@ class SE3EquivariantAttention(torch.nn.Module):
 #节点特征转换为q与k（线性输出分为四部分）
 #双向消息传递左值到右值的方向和右值到左值都要进行考虑
 #边缘特征与距离融合处理器，这里将边特征与距离编码直接相拼，进行线性变换随后使用LeakyReLU引入非线性（为什么要引入非线性？）
+
+#SE（3）是一个几何对称群，表示三维空间中的旋转和平移，等变性意味着模型的输入会随着，
+
+
         self.lin_qk = torch.nn.Linear(node_hidden, n_head * head_hidden * 4)
         RBF_num_gaussians = edge_hidden
+#DistRBF（）是距离编码机制将欧式距离映射为高维可学习特征
         self.dist_scale = DistRBF(num_gaussians=RBF_num_gaussians)
         self.edge_coor_to_att = torch.nn.Sequential(
             torch.nn.Linear(edge_hidden + RBF_num_gaussians, n_head * head_hidden * 2),
@@ -140,8 +156,11 @@ class SE3EquivariantAttention(torch.nn.Module):
         rel_dist = self.dist_scale(rel_coor.norm(p=2, dim=-1))
 #将线性变换后的节点特征分割为4部分，然后重新组织为多头格式，方便计算注意力
 #边特征处理，将特征重新组织为多头形式，方便计算注意力
+        
         l_m, r_m, l_v, r_v = self.lin_qk(x).chunk(4, dim=-1)
         l_m, r_m, l_v, r_v = map(lambda t: rearrange(t, 'b n (h d) -> b n h d', h=self.n_head), (l_m, r_m, l_v, r_v))
+
+
         edge_coor = torch.cat((edge_attr, rel_dist), dim=-1)
         e_m, e_v = self.edge_coor_to_att(edge_coor).chunk(2, dim=-1)
         e_m, e_v = map(lambda t: rearrange(t, 'b i j (h d) -> b i j h d', h=self.n_head), (e_m, e_v))
@@ -193,6 +212,9 @@ class SE3EquivariantAttention(torch.nn.Module):
         return node_out, edge_out, coor_out
 
 #封装注意力机制的结果，为其他模块进行调用
+
+
+
 class GateNormAttention(torch.nn.Module):
     def __init__(self,
                  node_hidden,
@@ -205,6 +227,8 @@ class GateNormAttention(torch.nn.Module):
         super(GateNormAttention, self).__init__()
         self.only_coor_out = only_coor_out
 
+
+#这部分调用了等变注意力机制，
         self.att_layer_i = SE3EquivariantAttention(
             node_hidden,
             edge_hidden,
@@ -226,14 +250,15 @@ class GateNormAttention(torch.nn.Module):
         x_shortcut = complex_graph.x
         edge_attr_shortcut = complex_graph.edge_attr
         node_out_i, edge_out_i, coor_out_i = self.att_layer_i(complex_graph)
-#使用注意力机制的输出更新节点特征和边特征
+
+#使用注意力机制的输出更新节点特征和边特征，进行门控融合和归一化处理
         if self.only_coor_out == False:
             complex_graph.x = self.gate_node_i(node_out_i, x_shortcut)
             complex_graph.edge_attr = self.gate_edge_i(edge_out_i, edge_attr_shortcut)
             complex_graph.x = self.norm_node_i(complex_graph.x)
             complex_graph.edge_attr = self.norm_edge_i(complex_graph.edge_attr)
 
-        # coor
+        # coor坐标更新
         complex_graph.coor = complex_graph.coor + coor_out_i
 
         return complex_graph

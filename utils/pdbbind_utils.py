@@ -21,133 +21,32 @@ import torch_geometric
 from utils.common import load_idx_list
 from utils.data_utils import pad_zeros, batch_index_select_for_edge, batch_index_select
 from utils.pdbbind_preprocess import gen_pdbbind_screening_list
-from utils.training_utils import load_data_split, save_data_split
+from training_utils_revise import load_data_split, save_data_split
 
+#拆分数据集，为训练集和测试集
+def split_pdbbind(pdbbind_path, data_split_rate, core_list_path=None):
+    if isinstance(core_list_path, type(None)):
+        pdb_list = os.listdir(pdbbind_path)
+        random.shuffle(pdb_list)
 
+        l = len(pdb_list)
+        cut_1 = int(data_split_rate[0] * l)
+        cut_2 = cut_1 + int(data_split_rate[1] * l)
+        train_list = pdb_list[:cut_1]
+        val_list = pdb_list[cut_1:cut_2]
+        test_list = pdb_list[cut_2:]
+    else:
+        pdb_list = os.listdir(pdbbind_path)
+        test_list = [f'{i}.npz' for i in load_idx_list(core_list_path) if f'{i}.npz' in pdb_list]
+        rest_list = [i for i in pdb_list if i not in test_list]
+        random.shuffle(rest_list)
 
-# def split_pdbbind(pdbbind_path, data_split_rate, core_list_path=None):
-#     if isinstance(core_list_path, type(None)):
-#         pdb_list = os.listdir(pdbbind_path)
-#         random.shuffle(pdb_list)
-#
-#         l = len(pdb_list)
-#         cut_1 = int(data_split_rate[0] * l)
-#         cut_2 = cut_1 + int(data_split_rate[1] * l)
-#         train_list = pdb_list[:cut_1]
-#         val_list = pdb_list[cut_1:cut_2]
-#         test_list = pdb_list[cut_2:]
-#     else:
-#         pdb_list = os.listdir(pdbbind_path)
-#         test_list = [f'{i}.npz' for i in load_idx_list(core_list_path) if f'{i}.npz' in pdb_list]
-#         rest_list = [i for i in pdb_list if i not in test_list]
-#         random.shuffle(rest_list)
-#
-#         l = len(rest_list)
-#         cut_2 = int(data_split_rate[1] * l)
-#         val_list = rest_list[:cut_2]
-#         train_list = rest_list[cut_2:]
-#
-#     return train_list, val_list, test_list
-
-
-#################################################
-########-----------划分数据集------------##########
-#################################################
-
-def split_pdbbind_semi(split_rate, pdbbind_path=None, core_list_path=None, labeled_set_path=None, unlabeled_set_path=None):
-    """
-    划分数据集为有标签和无标签部分
-    """
-    # 加载有标签数据（refined_set）
-    labeled_complexes = []
-    if labeled_set_path is not None:
-        if os.path.isfile(labeled_set_path):
-            # 如果是文件，读取文件内容
-            labeled_complexes = [l.strip() for l in open(labeled_set_path, 'r').readlines()]
-        else:
-            # 如果是目录，获取所有子目录
-            labeled_complexes = [os.path.basename(f).replace('.npz', '')
-                                 for f in glob.glob(os.path.join(labeled_set_path, '*'))
-                                 if os.path.isdir(f) or f.endswith('.npz')]
-        print(f"加载有标签数据: {len(labeled_complexes)} 个复合物")
-
-    # 加载无标签数据（general_set）
-    unlabeled_complexes = []
-    if unlabeled_set_path is not None:
-        if os.path.isfile(unlabeled_set_path):
-            # 如果是文件，读取文件内容
-            unlabeled_complexes = [l.strip() for l in open(unlabeled_set_path, 'r').readlines()]
-        else:
-            # 如果是目录，获取所有子目录
-            unlabeled_complexes = [os.path.basename(f).replace('.npz', '')
-                                 for f in glob.glob(os.path.join(unlabeled_set_path, '*'))
-                                 if os.path.isdir(f) or f.endswith('.npz')]
-        print(f"加载无标签数据: {len(unlabeled_complexes)} 个复合物")
-
-    # 保留核心集测试
-    core_list = []
-    if core_list_path is not None:
-        if os.path.isdir(core_list_path):
-            core_list = [os.path.basename(f) for f in glob.glob(os.path.join(core_list_path, '*'))
-                         if os.path.isdir(f)]
-        else:
-            core_list = [l.strip() for l in open(core_list_path, 'r').readlines()]
-        print(f"加载核心集数据: {len(core_list)} 个复合物")
-
-    # 划分有标签数据为训练/验证/测试集
-    test_list = core_list if core_list else []
-    non_test_labeled = [c for c in labeled_complexes if c not in test_list]
-
-    # 按比例划分
-    train_size = int(len(non_test_labeled) * split_rate[0])
-    val_size = int(len(non_test_labeled) * split_rate[1])
-
-    train_labeled = non_test_labeled[:train_size]
-    val_list = non_test_labeled[train_size:train_size + val_size]
-
-    # 若测试集为空，则从剩余有标签数据中划分
-    if not test_list:
-        test_list = non_test_labeled[train_size + val_size:]
-
-    # 将无标签数据和有标签数据分别标记并存储
-    train_list = [(c, 1) for c in train_labeled]  # 1表示有标签
-    train_list.extend([(c, 0) for c in unlabeled_complexes])  # 0表示无标签
+        l = len(rest_list)
+        cut_2 = int(data_split_rate[1] * l)
+        val_list = rest_list[:cut_2]
+        train_list = rest_list[cut_2:]
 
     return train_list, val_list, test_list
-
-
-class SemiSupervisedComplexDataset(ComplexDataset):
-    def __init__(self, split, args, data_list, cache_path=None):
-        """初始化半监督数据集
-
-        Args:
-            split: 数据集类型 'train', 'val', 'test'
-            args: 参数
-            data_list: 数据列表，格式为 [(pdb_id, has_label), ...]
-            cache_path: 缓存路径
-        """
-        self.split = split
-        self.args = args
-        self.data_list = [item[0] if isinstance(item, tuple) else item for item in data_list]
-        self.has_label = [item[1] if isinstance(item, tuple) else True for item in data_list]
-        self.cache_path = cache_path
-        self.training = split == 'train'
-
-        # 初始化其他成员变量
-        super(ComplexDataset, self).__init__()
-
-    def __getitem__(self, idx):
-        pdb_id = self.data_list[idx]
-        has_label = self.has_label[idx]
-
-        # 加载数据
-        data = self._load_data(pdb_id)
-
-        # 如果是无标签数据，将亲和力信息设为None或特殊值
-        if not has_label:
-            data['aff'] = None
-
-        return data
 
 
 def collate_struct(batch_list):
@@ -480,7 +379,7 @@ class ComplexStructDataset(torch.utils.data.Dataset):
             coor_mask = .0
 
         else:
-            dic_data = np.load(f'{self.pdbbind_path}/{f_name}')
+            dic_data = np.load(f'{self.pdbbind_path}/{f_name}', allow_pickle=True)
 
             protein_node_feature_init = dic_data['protein_node_features']
             protein_edge_feature_init = dic_data['protein_edge_features']

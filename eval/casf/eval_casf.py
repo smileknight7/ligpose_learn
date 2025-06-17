@@ -142,8 +142,8 @@ if __name__ == '__main__':
     cmd = f'python forward_screening_power.py -c CoreSet.dat -s {score_path} -p positive -o forward_result.out -t TargetInfo.dat'
     print(cmd)
 #此处使用了CASF评估脚本
-
-
+#CASF数据集是分子对接和亲和力预测中的一个标准化评估基准，用于评估打分函数或者分子建模的性能
+#相当于是一个标准测试集，可以用来和别人的模型进行比较
 
 
 

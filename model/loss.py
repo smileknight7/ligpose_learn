@@ -170,9 +170,14 @@ class ScreenLoss(torch.nn.Module):
         self.gamma_2 = args.gamma_2
         self.gamma_3 = args.gamma_3
 
+
+
+#这里的输入是1coor_hidden 模型预测的坐标隐藏状态（3D），2aff_pred 亲和力预测，3scr_pred 打分函数预测
     def forward(self, tup_pred, complex_graph, epoch=1e+5):
         coor_hidden, aff_pred, scr_pred = tup_pred
-
+    
+    #这里的tup_pred是将三维坐标，亲和力以及打分函数在该函数内部进行了封装并打包到一起的一个对象并不算是一个
+        
         ################################################################################################################
         # for coor
         ################################################################################################################
