@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # data source
     parser.add_argument('--pdbbind_path', type=str,
-                        default='/home/smileknight/learn/work_file/tmp',
+                        default='/home/cluster2/mu02/liupengwei/work_file/tmp',
                         help='path to prepared data')
     parser.add_argument('--l_npz_path', type=str,
                         default='./',
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--regenerate_data_list', type=str,
                         default=False, help='regenerate data split. (if no file exists)')
     parser.add_argument('--data_list_path', type=str,
-                        default='/home/smileknight/learn/LigPose_demo_linux/eval/pdbbind',
+                        default='/home/cluster2/mu02/liupengwei/LigPose_demo_linux/eval/pdbbind',
                         help='path to data list, core_test/core_test_reduce_train/som_pretrain/som_pretrain_reduce_train/zinc250k')
     parser.add_argument('--data_split_rate', type=str,
                         default='0.75-0.05-0.2',
@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--core_list_path', type=str,
-                        default='/home/smileknight/learn/LigPose_demo_linux/eval/pdbbind/core_list.txt', help='core set of PDBbind')
+                        default='/home/cluster2/mu02/liupengwei/LigPose_demo_linux/eval/pdbbind/core_list.txt', help='core set of PDBbind')
 
 
 
@@ -313,8 +313,11 @@ if __name__ == '__main__':
     parser.add_argument('--use_seed', type=str, default=True, help='use random seed')
     parser.add_argument('--seed', type=int, default=random.randint(0, 100), help='random seed')
     parser.add_argument('--num_workers', type=int, default=4, help='num_workers in Dataloader')
-    parser.add_argument('--use_multi_gpu', type=str, default=False, help='if use GPUs')
-    parser.add_argument('--use_multi_gpu_for_loss_object', type=str, default=False, help='if loss object need use GPUs')
+
+    # parser.add_argument('--use_multi_gpu', type=str, default=False, help='if use GPUs')
+    #parser.add_argument('--use_multi_gpu_for_loss_object', type=str, default=False, help='if loss object need use GPUs')
+    parser.add_argument('--use_multi_gpu', action='store_true', help='If use GPUs')
+    parser.add_argument('--use_multi_gpu_for_loss_object', action='store_true', help='If loss object needs GPUs')
     parser.add_argument('--gpu_list', type=str, default='0', help='available GPU list')
     parser.add_argument('--world_size', type=int, default=1, help='number of GPUs to use')
     parser.add_argument('--port', type=str, default=str(random.randint(10000, 20000)), help='parallel port')
