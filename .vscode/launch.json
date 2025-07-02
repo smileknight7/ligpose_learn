@@ -6,8 +6,8 @@
       "type": "debugpy",
       "request": "attach",
       "connect": {
-        "host": "localhost",
-        "port": 5678
+        "host": "gpu01",
+        "port": 5679
       },
       "pathMappings": [
         {
@@ -24,7 +24,7 @@
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceFolder}",
-        "LD_LIBRARY_PATH": "/home/smileknight/miniconda3/envs/ligpose/lib:${env:LD_LIBRARY_PATH}"
+        "LD_LIBRARY_PATH": "HOME/cuda-11.1/lib64:$LD_LIBRARY_PATH"
       }
     }
   ]

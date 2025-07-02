@@ -89,7 +89,7 @@ def process_all_pdbs_in_folder(data_path):
             print(f"无法读取 {pdb_id} 的分子数据")
     return mols
 
-data_path = r'/home/smileknight/learn/LigPose_demo_linux/suppl/refined_set_10'
+data_path = r'/home/cluster2/mu02/liupengwei/data/general_set_10'
 mols = process_all_pdbs_in_folder(data_path)
 print(f"mols 字典包含 {len(mols)} 个分子")
 #打印结果

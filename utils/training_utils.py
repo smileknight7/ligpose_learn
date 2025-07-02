@@ -58,13 +58,13 @@ def load_data_split(path='./', blind_training=False):
 def get_dataloader(args, train_dataset, val_dataset, world_size, collate_fn):
     if args.use_multi_gpu:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, num_replicas=world_size,
-                                                                        rank=args.rank, shuffle=True)
+                                                                        rank=args.local_rank, shuffle=True)
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,
                                                    sampler=train_sampler, num_workers=args.num_workers,
                                                    pin_memory=False, persistent_workers=args.persistent_workers,
                                                    prefetch_factor=2, collate_fn=collate_fn)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, num_replicas=world_size,
-                                                                      rank=args.rank, shuffle=True)
+                                                                      rank=args.local_rank, shuffle=True)
         val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=args.batch_size,
                                                  sampler=val_sampler, num_workers=2, persistent_workers=args.persistent_workers,
                                                  collate_fn=collate_fn)
@@ -95,7 +95,7 @@ class CustomOptimization():
             if not isinstance(args.lr_sche_batch_wise, type(None)) and len(args.lr_sche_batch_wise) > 0 else []
 
         self.n_opt_step = len(self.optimizers)
-        if args.rank == 0 or not args.use_multi_gpu:
+        if args.local_rank == 0 or not args.use_multi_gpu:
             print(f'Optimizer groups: {self.n_opt_step}')
 
     def __call__(self, grad_loss, update_together=True, epoch=-1):
@@ -201,9 +201,9 @@ def save_params(args, my_model, loss_object, opt_object, dic_traj, save_path):
 def init_params(args, my_model, loss_object, opt_object):
     if args.restart == 0:
         if args.choose_start_weight != None:
-            if args.rank == 0 or not args.use_multi_gpu:
+            if args.local_rank == 0 or not args.use_multi_gpu:
                 print(f'Loading params: from {args.choose_start_weight}')
-            chk = torch.load(args.choose_start_weight, map_location=f'cuda:{args.rank}')
+            chk = torch.load(args.choose_start_weight, map_location=f'cuda:{args.local_rank}')
 
             strict = True
 
@@ -221,14 +221,14 @@ def init_params(args, my_model, loss_object, opt_object):
             weights_init(my_model)
 
         dic_traj = {'train': defaultdict(list), 'val': defaultdict(list)}
-        if args.rank == 0 or not args.use_multi_gpu:
+        if args.local_rank == 0 or not args.use_multi_gpu:
             delmkdir(args.weight_path)
             delmkdir(args.vis_path)
 
     else:
-        if args.rank == 0 or not args.use_multi_gpu:
+        if args.local_rank == 0 or not args.use_multi_gpu:
             print(f'Loading params from {args.weight_path}/state_{args.restart}.chk')
-        chk = torch.load(f'{args.weight_path}/state_{args.restart}.chk', map_location=f'cuda:{args.rank}')
+        chk = torch.load(f'{args.weight_path}/state_{args.restart}.chk', map_location=f'cuda:{args.local_rank}')
 
         if args.use_multi_gpu:
             my_model.module.load_state_dict(chk['model_state_dict'], strict=True)
@@ -243,7 +243,7 @@ def init_params(args, my_model, loss_object, opt_object):
 
         dic_traj = chk['dic_traj']
 
-        if args.rank == 0 or not args.use_multi_gpu:
+        if args.local_rank == 0 or not args.use_multi_gpu:
             print('Restart at [{}/{}], current lr: {:.2e}'.format(args.restart, args.n_epoch, opt_object.optimizers[0].param_groups[0]['lr']))
         del chk
     return my_model, loss_object, opt_object, dic_traj

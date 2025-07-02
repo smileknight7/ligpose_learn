@@ -35,7 +35,7 @@ protobuf==3.20.3
 psutil==7.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
-pycairo==1.26.1
+#pycairo==1.26.1
 ray==2.10.0
 rdflib==7.1.4
 rdkit==2023.3.2
@@ -58,4 +58,5 @@ virtualenv==20.30.0
 Werkzeug==3.0.6
 yacs==0.1.8
 yarl==1.15.2
-
+seaborn==0.11.2
+matplotlib==3.3.4

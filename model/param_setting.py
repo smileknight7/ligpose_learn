@@ -29,7 +29,7 @@ def get_LigPose_params(model, loss_object, args):
 
     # optimizer & scheduler
     optimizer_1 = torch.optim.Adam(param_1, lr=args.lr, weight_decay=args.weight_decay)
-    lr_verbose = True if args.rank == 0 or not args.use_multi_gpu else False
+    lr_verbose = True if args.local_rank == 0 or not args.use_multi_gpu else False
     scheduler_1 = torch.optim.lr_scheduler.ExponentialLR(optimizer_1, args.lr_decay, last_epoch=-1, verbose=lr_verbose)
     return {'optimizer': [optimizer_1],
             'scheduler': [scheduler_1],

@@ -36,7 +36,7 @@ def train(rank, world_size, port, args):
     ####################################################################################################################
     set_gpu_device(rank, world_size, port, args)
     torch.cuda.set_device(rank)
-    args.rank = rank
+    args.local_rank = rank
 
 
     ####################################################################################################################
@@ -46,6 +46,11 @@ def train(rank, world_size, port, args):
     if rank == 0 or not args.use_multi_gpu:
         print('Initializing model...')
     my_model = LigPoseStruct(args).to(rank)
+
+    print(f"{sum(p.numel() for p in my_model.parameters()):,} total parameters")
+    print(f"{sum(p.numel() for p in my_model.parameters() if p.requires_grad):,} trainable parameters")
+    print(f"[Rank {rank}] Using GPU {torch.cuda.current_device()} ({torch.cuda.get_device_name(rank)})")
+
     if rank == 0 or not args.use_multi_gpu:
         summarize_model(my_model)
     if args.use_multi_gpu:
@@ -308,14 +313,16 @@ if __name__ == '__main__':
     parser.add_argument('--cache_path', type=str,
                         default='./cache', help='path to tmp data')
 
-
+#########################这里添加对rank这个参数赋值的内容################
     # device settings
+    parser.add_argument('--local_rank', type=int, default=-1,
+                        help='由 PyTorch 分布式启动器自动设置的当前进程的本地 GPU 排名。请勿手动设置此参数。')
     parser.add_argument('--use_seed', type=str, default=True, help='use random seed')
     parser.add_argument('--seed', type=int, default=random.randint(0, 100), help='random seed')
     parser.add_argument('--num_workers', type=int, default=4, help='num_workers in Dataloader')
 
     # parser.add_argument('--use_multi_gpu', type=str, default=False, help='if use GPUs')
-    #parser.add_argument('--use_multi_gpu_for_loss_object', type=str, default=False, help='if loss object need use GPUs')
+    # parser.add_argument('--use_multi_gpu_for_loss_object', type=str, default=False, help='if loss object need use GPUs')
     parser.add_argument('--use_multi_gpu', action='store_true', help='If use GPUs')
     parser.add_argument('--use_multi_gpu_for_loss_object', action='store_true', help='If loss object needs GPUs')
     parser.add_argument('--gpu_list', type=str, default='0', help='available GPU list')

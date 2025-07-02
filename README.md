@@ -69,10 +69,10 @@ pdb (XXXX_ligand.pdb) and smi (XXXX_ligand.smi) files and place them in the orig
 The following command is an example for training a toy LigPose (small model size).
 ```bash
 python -u train/train_pdbbind_struct.py \
---pdbbind_path path/to/prepared/data \
---original_path path/to/pdbbind \
---data_list_path eval/pdbbind/core_test \
---core_list_path eval/pdbbind/core_list.txt \
+--pdbbind_path /home/cluster2/mu02/liupengwei/work_file/tmp \
+--original_path ./data/general_set/ \
+--data_list_path /home/cluster2/mu02/liupengwei/LigPose_demo_linux/eval/pdbbind \
+--core_list_path ./data/refined_set/ \
 --batch_size 4 \
 --lr 0.0001 \
 --n_epoch 200 \
