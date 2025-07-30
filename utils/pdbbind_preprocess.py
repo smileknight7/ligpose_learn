@@ -5,7 +5,10 @@ sys.path.append('/'.join(os.path.abspath(__file__).split('/')[:-1]))
 import pickle
 from tqdm import tqdm, trange
 from collections import defaultdict
+import gc
 
+import subprocess
+import openbabel
 import torch
 import re
 import numpy as np
@@ -211,17 +214,48 @@ def get_pocket(df_protein, center_coor, dis, any_atom=False):
     return df_pocket
 
 
+def get_pocket_center(df_pocket):
+    # 取出口袋中所有原子的三维坐标
+    coords = df_pocket[['x_coord', 'y_coord', 'z_coord']].values  # shape: (N_atoms, 3)
+    
+    # 计算三维坐标的平均值，即为几何中心
+    pocket_center = np.mean(coords, axis=0)  # shape: (3,)
+    
+    return pocket_center
+
+
 def get_pocket_pdb_info(protein_mol):
     return [f'{atom.GetPDBResidueInfo().GetChainId()}_{atom.GetPDBResidueInfo().GetResidueNumber()}' for atom in
             protein_mol.GetAtoms()]
 
 
+# def read_mol_with_pdb_smi(pdb_path, smiles):
+#     ligand_mol = Chem.MolFromPDBFile(pdb_path)
+#     ligand_template = Chem.MolFromSmiles(smiles)
+#     ligand_mol = AllChem.AssignBondOrdersFromTemplate(ligand_template, ligand_mol)
+#     assert ligand_mol != None
+#     return ligand_mol
+
+
 def read_mol_with_pdb_smi(pdb_path, smiles):
     ligand_mol = Chem.MolFromPDBFile(pdb_path)
+    if ligand_mol is None:
+        print(f"Failed to read ligand from PDB file: {pdb_path}")
+        return None
+
     ligand_template = Chem.MolFromSmiles(smiles)
-    ligand_mol = AllChem.AssignBondOrdersFromTemplate(ligand_template, ligand_mol)
-    assert ligand_mol != None
-    return ligand_mol
+    if ligand_template is None:
+        print(f"Failed to parse ligand template from SMILES: {smiles}")
+        return None
+
+    ligand_mol_with_bonds = AllChem.AssignBondOrdersFromTemplate(ligand_template, ligand_mol)
+    if ligand_mol_with_bonds is None:
+        print("AssignBondOrdersFromTemplate failed: template and mol do not match")
+        return None
+
+    return ligand_mol_with_bonds
+
+
 
 
 def get_ligand_unrotable_distance(ligand_mol):
@@ -262,14 +296,42 @@ def read_mol_from_pdbbind(data_path, pdb_id):
     ligand_mol2_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.mol2'
     ligand_mol = Chem.MolFromMol2File(ligand_mol2_path)
     if ligand_mol == None:
+        print(f"[{pdb_id}] Failed to read .mol2 file, trying .sdf fallback...")
+        sdf_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.sdf'
+        pdb_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.pdb'
+        smi_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.smi'
+        # 检查 SDF 是否存在
+        if not os.path.exists(sdf_path):
+            print(f"[{pdb_id}] SDF file not found: {sdf_path}")
+            return None
+
+        # 调用 obabel 将 sdf 转 pdb
+        try:
+            subprocess.run(["obabel", sdf_path, "-O", pdb_path], check=True)
+        except subprocess.CalledProcessError:
+            print(f"[{pdb_id}] Open Babel conversion failed")
+            return None
+         # 调用 obabel 将 sdf 转 smi
+        try:
+            subprocess.run(["obabel", sdf_path, "-O", smi_path, "-osmi", "-xk"], check=True)
+            print(f"[{pdb_id}] Converted SDF to SMILES: {smi_path}")
+        except subprocess.CalledProcessError:
+            print(f"[{pdb_id}] Open Babel SDF → SMILES conversion failed")
+       
         ligand_pdbpath = f'{data_path}/{pdb_id}/{pdb_id}_ligand.pdb'
         ligand_smiles_path = f'{data_path}/{pdb_id}/{pdb_id}_ligand.smi'
         ligand_smiles = open(ligand_smiles_path, 'r').readlines()[0].split('\t')[0]
         ligand_mol = read_mol_with_pdb_smi(ligand_pdbpath, ligand_smiles)
+        if ligand_mol is None:
+            print(f"[{pdb_id}] Failed to build mol from PDB+SMILES")
+            return None
+        
+
+
     return ligand_mol
 
 
-# def get_aff(info_path):
+    # def get_aff(info_path):
 #     lines = open(info_path, 'r').readlines()
 #     dic_aff = {line[:4]: float(line[18:23]) for line in lines if not line.startswith('#')}
 #     return dic_aff
@@ -323,6 +385,74 @@ def get_aff(info_path):
 # suppl_path = "/home/smileknight/learn/ligpose_data/INDEX_general_PL.txt"
 # cache_path = "/home/smileknight/learn/work_file/cache"
 
+
+#处理半监督口袋数据
+def process_semi_pocket(pdb_id, data_path, cache_path, dis=15):
+
+    ligand_mol = read_mol_from_pdbbind(data_path, pdb_id)
+    ligand_true_posi = get_true_posi(ligand_mol)
+    
+    pdb_in_path = f'{data_path}/{pdb_id}/{pdb_id}_protein.pdb'
+    biodf_protein = PandasPdb().read_pdb(pdb_in_path)
+    df_protein = biodf_protein.df['ATOM']
+    df_pocket = get_pocket(df_protein, ligand_true_posi, dis=dis, any_atom=True)
+    biodf_protein.df['ATOM'] = df_pocket
+    tmp_pocket_file = cache_path + f'/{pdb_id}.pdb'
+    biodf_protein.to_pdb(tmp_pocket_file)
+    
+    
+    protein_lines = open(tmp_pocket_file, 'r').readlines()
+    protein_string = ''.join(protein_atom_filter(protein_lines))
+    protein_mol = Chem.MolFromPDBBlock(protein_string)
+    if protein_mol == None:
+        # use default pocket
+        lines = open(f'{data_path}/{pdb_id}/{pdb_id}_pocket.pdb', 'r').readlines()
+        protein_string = ''.join(protein_atom_filter(lines))
+        protein_mol = Chem.MolFromPDBBlock(protein_string)
+
+    
+    protein_edge, protein_edge_features = get_protein_edge_feature(protein_mol)
+    protein_node_features = get_node_feature(protein_mol, 'protein')
+    protein_true_posi = get_true_posi(protein_mol)
+    protein_pdb_info = get_pocket_pdb_info(protein_mol)
+    pocket_center = get_pocket_center(df_pocket)
+
+
+
+    del ligand_mol, ligand_true_posi
+    del biodf_protein, df_protein, df_pocket
+    del protein_lines, protein_string
+    del protein_mol
+    del protein_edge
+    gc.collect()
+    
+    
+    return dict(protein_node_features=protein_node_features,
+            protein_edge_features=protein_edge_features,
+            protein_true_posi=protein_true_posi,
+            protein_pdb_info=protein_pdb_info,
+            #center_coor=center_coor,详情见当前脚本189行，不知道是不是可以直接用这个传入的数据呢
+            center_coor=pocket_center) # 使用配体位置作为中心,这里应该这样写吗还是说应该使用计算的口袋中心呢)
+#处理半监督配体数据
+def process_semi_ligand(pdb_id, data_path):
+
+    ligand_mol = read_mol_from_pdbbind(data_path, pdb_id)
+    ligand_node_features = get_node_feature(ligand_mol, 'ligand')
+    ligand_edge, ligand_edge_features = get_ligand_edge_feature(ligand_mol)
+    ligand_match = get_liagnd_match(ligand_mol)
+    ligand_distmap = get_ligand_unrotable_distance(ligand_mol)
+
+    del ligand_mol, ligand_edge
+    gc.collect()
+
+
+
+
+    return dict(ligand_node_features=ligand_node_features,
+            ligand_edge_features=ligand_edge_features,
+            ligand_match=ligand_match,
+            ligand_distmap=ligand_distmap,
+            )
 
 
 

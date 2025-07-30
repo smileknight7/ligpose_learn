@@ -34,7 +34,7 @@ if __name__ == '__main__':
 #argparse是python内置的命令行参数解析模块
     # data source
     parser.add_argument('--data_path', type=str,
-                        default= '/home/smileknight/learn/ligpose_data/general_set_10', help='data path')
+                        default= '/home/smileknight/learn/ligpose_data/v2020-other-PL', help='data path')
     parser.add_argument('--data_suppl_path', type=str,
                         default= '/home/smileknight/learn/ligpose_data/INDEX_general_PL.txt', help='suppl path')
 

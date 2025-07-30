@@ -14,7 +14,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 from model.layers import LigPoseScr
 from model.loss import ScreenLoss
-from pdbbind_utils_revise import split_pdbbind_semi, ComplexScreeningDataset, collate_screening
+from utils.pdbbind_utils import split_pdbbind, ComplexScreeningDataset, collate_screening
 from model.param_setting import get_LigPose_params
 from training_utils_revise import *
 from utils.common import *
@@ -88,7 +88,7 @@ def train(rank, world_size, port, args):
         #此处pdbbind_path是定义在当前脚本下面的，data_split_rate定义到了common函数中
         #这里应该还要再写一下构建无标签数据的函数，这个函数似乎应该写道划分数据集的split_pdbbind_semi的函数里面，或者写在外面调用一下
             
-        train_list_labeled, val_list_labeled, test_list = split_pdbbind_semi(args.labeled_set_path, args.data_split_rate, core_list_path=args.core_list_path)
+        train_list_labeled, val_list_labeled, test_list = split_pdbbind(args.labeled_set_path, args.data_split_rate, core_list_path=args.core_list_path)
         save_data_split(train_list_labeled, val_list_labeled, test_list,   path=args.data_list_path)
         
     train_list, val_list, test_list = load_data_split(path=args.data_list_path, blind_training=args.blind_training)

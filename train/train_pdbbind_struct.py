@@ -203,7 +203,7 @@ if __name__ == '__main__':
                         help='dataset path')
     parser.add_argument('--c_npz_path', type=str,
                         default='./',
-                        help='dataset path')
+                        help='dataset path semi')
     parser.add_argument('--choose_start_weight', type=str,
                         default=None,
                         help='init weight (restart=0), None for random')
