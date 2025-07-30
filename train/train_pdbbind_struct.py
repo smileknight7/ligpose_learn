@@ -50,7 +50,7 @@ def train(rank, world_size, port, args):
         summarize_model(my_model)
     if args.use_multi_gpu:
         my_model = torch.nn.parallel.DistributedDataParallel(my_model, device_ids=[rank], find_unused_parameters=True)
-
+###
 
 
 ###########################################
