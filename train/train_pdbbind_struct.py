@@ -277,6 +277,10 @@ if __name__ == '__main__':
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate')
     parser.add_argument('--max_ligand_atom_init_distance', type=float, default=10,
                         help='(A) +- max distance to randomly place ligand')
+    #time embedding
+    parser.add_argument('--time_embed_dim', type=int, default=256, help='time embedding dimension')
+    parser.add_argument('--time_embed_mode', type=str, default='sinusoidal',help='time embedding mode, sinusoidal or learned')
+
 
     # additional training settings
     parser.add_argument('--semi_rate', type=float, default=0.0, help='rate to sample a unlabeled data')

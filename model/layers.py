@@ -3,7 +3,8 @@ import random
 import pandas as pd
 import torch
 import torch.nn.functional as F
-
+from torch import nn
+from model.diffusion import SinusoidalTimeEmbedding
 from model.GNN import *
 from utils.data_utils import batch_index_select
 
@@ -73,10 +74,26 @@ class UpdateBlock(torch.nn.Module):
         return complex_graph
 #这里有一点点没看懂，为什么对complex_graph进行了堆叠并赋值，很奇怪，还搞了返回值
 
+# 定义ShiftedSoftplus激活函数
+class ShiftedSoftplus(nn.Module):
+    def __init__(self):
+        super(ShiftedSoftplus, self).__init__()
+        self.shift = torch.log(torch.tensor(2.0))
+
+    def forward(self, x):
+        return F.softplus(x) - self.shift
+
+
 class LigPoseBase(torch.nn.Module):
     def __init__(self, args):
         super(LigPoseBase, self).__init__()
         self.n_cycle = args.n_cycle
+        
+        # 添加时间嵌入相关属性
+        self.time_embed_dim = getattr(args, 'time_embed_dim', 0)
+        self.time_embed_mode = getattr(args, 'time_embed_mode', 'sinusoidal')
+        self.hidden_dim = args.node_hidden
+        
         # embed
         self.protein_embed = make_embed(args.protein_input_channel + 1, args.node_hidden)
         self.ligand_embed = make_embed(args.ligand_input_channel + 1, args.node_hidden)
@@ -96,12 +113,63 @@ class LigPoseBase(torch.nn.Module):
                                        args.node_hidden // args.n_head,
                                        args.dropout
                                        )
+                                       
+        # 初始化时间嵌入
+        if self.time_embed_dim > 0:
+            print(f"使用时间嵌入，维度: {self.time_embed_dim}, 模式: {self.time_embed_mode}")
+            if self.time_embed_mode == 'simple':
+                # 简单时间嵌入
+                self.time_embed = None
+            elif self.time_embed_mode == 'sinusoidal':
+                # 正弦时间嵌入
+                self.time_embed = SinusoidalTimeEmbedding(self.time_embed_dim)
+                self.time_mlp = nn.Sequential(
+                    nn.Linear(self.time_embed_dim, self.time_embed_dim * 4),
+                    nn.GELU(),
+                    nn.Linear(self.time_embed_dim * 4, self.time_embed_dim)
+                )
+            else:
+                raise NotImplementedError(f"不支持的时间嵌入模式: {self.time_embed_mode}")
+        else:
+            self.time_embed = None
+        
+        # 推理网络
+        self.v_inference = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            ShiftedSoftplus(),
+            nn.Linear(self.hidden_dim, args.ligand_input_channel),
+        )
 
-    def forward(self, complex_graph):
+        
+
+    def forward(self, complex_graph, timestep=None):
         # embed
         complex_graph = complex_graph
         embed_protein_node_feature_init = self.protein_embed(complex_graph.protein_node_feature_init)
         embed_ligand_node_feature_init = self.ligand_embed(complex_graph.ligand_node_feature_init)
+        
+        # 处理时间嵌入，如果有
+        if timestep is not None and self.time_embed is not None:
+            time_emb = self.time_embed(timestep)
+            if hasattr(self, 'time_mlp'):
+                time_emb = self.time_mlp(time_emb)
+            
+            # 将时间嵌入广播到所有配体节点
+            batch_size = complex_graph.ligand_node_feature_init.shape[0]
+            num_ligand_nodes = complex_graph.ligand_node_feature_init.shape[1]
+            
+            # 将时间嵌入扩展到与配体节点相同的维度
+            time_emb_expanded = time_emb.unsqueeze(1).expand(-1, num_ligand_nodes, -1)
+            
+            # 如果time_embed_dim与hidden_dim不同，需要投影
+            if time_emb_expanded.shape[-1] != self.hidden_dim:
+                if not hasattr(self, 'time_proj'):
+                    self.time_proj = nn.Linear(time_emb_expanded.shape[-1], self.hidden_dim).to(time_emb_expanded.device)
+                time_emb_expanded = self.time_proj(time_emb_expanded)
+                
+            # 将时间嵌入添加到配体节点嵌入中
+            embed_ligand_node_feature_init = embed_ligand_node_feature_init + time_emb_expanded
+        
         middle_pad_embed_node_feature_init = torch.cat(
             [embed_protein_node_feature_init, embed_ligand_node_feature_init], dim=-2)
         complex_graph.embed_node_feature_init = batch_index_select(middle_pad_embed_node_feature_init,
@@ -183,8 +251,8 @@ class LigPoseStruct(torch.nn.Module):
             torch.nn.LeakyReLU(),
             torch.nn.Linear(args.edge_hidden, 6))
 
-    def forward(self, complex_graph, return_graph=False):
-        complex_graph = self.main_net(complex_graph)
+    def forward(self, complex_graph, timestep=None, return_graph=False):
+        complex_graph = self.main_net(complex_graph, timestep=timestep)
 
         # for aff
         node_mean_pooling = torch.einsum('b n d -> b d',

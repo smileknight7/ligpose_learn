@@ -423,7 +423,9 @@ def process_semi_pocket(pdb_id, data_path, cache_path, dis=15):
     del biodf_protein, df_protein, df_pocket
     del protein_lines, protein_string
     del protein_mol
-    del protein_edge
+    del protein_edge, protein_edge_features
+    del protein_node_features, protein_true_posi, protein_pdb_info
+    del pocket_center
     gc.collect()
     
     
@@ -432,7 +434,8 @@ def process_semi_pocket(pdb_id, data_path, cache_path, dis=15):
             protein_true_posi=protein_true_posi,
             protein_pdb_info=protein_pdb_info,
             #center_coor=center_coor,详情见当前脚本189行，不知道是不是可以直接用这个传入的数据呢
-            center_coor=pocket_center) # 使用配体位置作为中心,这里应该这样写吗还是说应该使用计算的口袋中心呢)
+            center_coor=pocket_center, # 使用配体位置作为中心,这里应该这样写吗还是说应该使用计算的口袋中心呢
+            )
 #处理半监督配体数据
 def process_semi_ligand(pdb_id, data_path):
 
@@ -442,7 +445,8 @@ def process_semi_ligand(pdb_id, data_path):
     ligand_match = get_liagnd_match(ligand_mol)
     ligand_distmap = get_ligand_unrotable_distance(ligand_mol)
 
-    del ligand_mol, ligand_edge
+    del ligand_mol, ligand_node_features, ligand_edge, ligand_edge_features
+    del ligand_match, ligand_distmap
     gc.collect()
 
 

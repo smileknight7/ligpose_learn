@@ -15,12 +15,19 @@ from ray.util.multiprocessing import Pool
 from utils.common import delmkdir, print_args
 from utils.pdbbind_preprocess import process_semi_pocket, process_semi_ligand
 
-def generate_combinations_from_disk(protein_dir, ligand_dir):
-    protein_ids = {f.split('.')[0] for f in os.listdir(protein_dir) if f.endswith('.npz')}
-    ligand_ids = {f.split('.')[0] for f in os.listdir(ligand_dir) if f.endswith('.npz')}
-    valid_ids = protein_ids & ligand_ids  # 两者都存在的才处理
-
-    combinations = [(pdb_id, pdb_id) for pdb_id in sorted(valid_ids)]
+def generate_combinations(protein_data, ligand_data):
+    """
+    生成蛋白质-配体组合策略
+    只选配体名和蛋白质名相同的组合（1:1对应）
+    """
+    combinations = []
+    
+    for protein_id in protein_data.keys():
+        # 判断 ligand_data 中是否有和 protein_id 一样的键
+        if protein_id in ligand_data:
+            combinations.append((protein_id, protein_id))
+    
+    print(f"Generated {len(combinations)} 1:1 combinations")
     return combinations
 
 def process(task):
@@ -71,55 +78,72 @@ def process_batch(task):
     os.makedirs(ligand_output_path, exist_ok=True)
     os.makedirs(complex_output_path, exist_ok=True)
     
-   
+    protein_data = {}
+    ligand_data = {}
+    successful_ids = []
     failed_ids = []
     
     print(f"Processing {len(pdb_list)} complexes...")
     
     # 1. 处理所有蛋白质和配体数据
-    for idx, pdb_id in enumerate(tqdm(pdb_list, desc="Processing proteins and ligands")):
+    for pdb_id in tqdm(pdb_list, desc="Processing proteins and ligands"):
         try:
             # 处理蛋白质口袋
             dic_pocket = process_semi_pocket(pdb_id, data_path, cache_path)
             if dic_pocket is None:
                 failed_ids.append(pdb_id)
                 continue
-
+                
             # 处理配体
             dic_ligand = process_semi_ligand(pdb_id, data_path)
             if dic_ligand is None:
                 failed_ids.append(pdb_id)
                 continue
-
+            
             # 保存数据
             np.savez_compressed(f'{protein_output_path}/{pdb_id}.npz', **dic_pocket)
             np.savez_compressed(f'{ligand_output_path}/{pdb_id}.npz', **dic_ligand)
-
+            
+            # 记录成功处理的数据
+            protein_data[pdb_id] = dic_pocket
+            ligand_data[pdb_id] = dic_ligand
+            successful_ids.append(pdb_id)
             
             del dic_pocket
             del dic_ligand
+            gc.collect()
 
-            # 每处理10个，主动释放一次内存
-            if (idx + 1) % 10 == 0:
-                gc.collect()
 
             shutil.rmtree(os.path.join(cache_path, pdb_id), ignore_errors=True)
+
 
         except Exception as e:
             print(f"Error processing {pdb_id}: {e}")
             failed_ids.append(pdb_id)
             continue
-    successful_ids = [pdb_id for pdb_id in pdb_list if pdb_id not in failed_ids]
+    
     print(f"Successfully processed: {len(successful_ids)} / {len(pdb_list)} complexes")
     
     # 2. 生成组合策略（只使用成功处理的数据）
+    if len(successful_ids) > 0:
+        combinations = generate_combinations(protein_data, ligand_data)
+        
+        # 3. 保存复合物索引
+        for protein_id, ligand_id in combinations:
+            complex_name = f'{protein_id}-{ligand_id}'
+            complex_info = {
+                'protein_id': protein_id,
+                'ligand_id': ligand_id,
+            }
+            np.savez_compressed(f'{complex_output_path}/{complex_name}.npz', **complex_info)
+        
+        print(f"Generated {len(combinations)} combinations")
+        return True
+    else:
+        print("No successful processing, cannot generate combinations")
+        return False
 
-    combinations = generate_combinations_from_disk(args.protein_output_path, args.ligand_output_path)
     
-    for protein_id, ligand_id in combinations:
-        complex_path = os.path.join(complex_output_path, f'{protein_id}-{ligand_id}.npz')
-        np.savez_compressed(complex_path, protein_id=protein_id, ligand_id=ligand_id)
-
 def try_prepare_pdbbind(task):
     """
     包装函数，用于错误处理

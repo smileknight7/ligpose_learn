@@ -11,6 +11,7 @@ def make_embed(input_channel, output_channel):
     return torch.nn.Sequential(
         torch.nn.Linear(input_channel, output_channel),
         torch.nn.LeakyReLU())
+#这个LeakyRelU的优势是最终x<0的时候不会导致输出结果恒等于0，而是有一个小的斜率（负半轴的斜率为0.01），输出结果恒等于0的话会导致神经元死亡
 
 #实现门残差链接的神经网络模块
 #门控循环单元GRU（使得需要注意的部分————更新门，可以忘记的部分————重置门）
@@ -21,7 +22,7 @@ class GateResidue(torch.nn.Module):
         self.gate_flag = gate_flag
         if self.gate_flag:
             self.gate = torch.nn.Linear(hidden * 3, hidden)
-
+#上面是定义这个门控网络的样子，下面相当于是实例化？
     def forward(self, x, res):
         if self.gate_flag:
             g = self.gate(torch.cat((x, res, x - res), dim=-1)).sigmoid()
@@ -60,6 +61,7 @@ class GateNormFeedForward(torch.nn.Module):
         return x
 
 #对坐标向量进行归一化处理，确保具有相同的长度
+#这里放弃了使用scale来对向量之间的距离进行超参数控制************
 class CoorNorm(torch.nn.Module):
     def __init__(self):
         super(CoorNorm, self).__init__()
@@ -119,28 +121,35 @@ class SE3EquivariantAttention(torch.nn.Module):
         self.n_head = n_head
         self.head_hidden = head_hidden
         self.sqrt_head_hidden = np.sqrt(self.head_hidden)
+#这里np.sqrt(self.head_hidden)是在计算缩放系数，在注意力权重计算中进行标准化，确保训练的稳定，是注意力机制的常规步骤
+
+
 #节点特征转换为q与k（线性输出分为四部分）
 #双向消息传递左值到右值的方向和右值到左值都要进行考虑
 #边缘特征与距离融合处理器，这里将边特征与距离编码直接相拼，进行线性变换随后使用LeakyReLU引入非线性（为什么要引入非线性？）
 
 #SE（3）是一个几何对称群，表示三维空间中的旋转和平移，等变性意味着模型的输入会随着，
-
-
+#节点处理
+#n_head是表示有多少个注意力头是吧，head_hidden指的是一个头中要分多少维度
         self.lin_qk = torch.nn.Linear(node_hidden, n_head * head_hidden * 4)
-        RBF_num_gaussians = edge_hidden
+       
+#边处理
+        RBF_num_gaussians = edge_hidden               #这里是在初始化指定的维度设定？？？？？
 #DistRBF（）是距离编码机制将欧式距离映射为高维可学习特征
         self.dist_scale = DistRBF(num_gaussians=RBF_num_gaussians)
         self.edge_coor_to_att = torch.nn.Sequential(
             torch.nn.Linear(edge_hidden + RBF_num_gaussians, n_head * head_hidden * 2),
             torch.nn.LeakyReLU())
 #条件性节点特征和边特征变换，head_hidden * 2是为了处理双向信息传递。
+
+
         if only_coor_out == False:
             self.lin_node_out = torch.nn.Linear(n_head * head_hidden * 2, node_hidden)
             self.lin_edge_out = torch.nn.Linear(n_head * head_hidden, edge_hidden)
 #这里定义了一个坐标投影网络用于将注意力特征转换为坐标更新的权重？？？？？这个还要再看看
-        self.coor_out = torch.nn.Sequential(torch.nn.Linear(n_head * head_hidden, n_head * head_hidden),
-                                            torch.nn.LeakyReLU(),
-                                            torch.nn.Linear(n_head * head_hidden, 1))
+        self.coor_out = torch.nn.Sequential(torch.nn.Linear(n_head * head_hidden, n_head * head_hidden),   #维度保持的线性变换，允许特征交互
+                                            torch.nn.LeakyReLU(),                                          #经过非线性激活
+                                            torch.nn.Linear(n_head * head_hidden, 1))                      #将多维特征压缩为一个标量（一般表示坐标更新系数，或者是注意力权重）
 #辅助性组件
         self.coor_norm = CoorNorm()
         self.dropout = torch.nn.Dropout(dropout)
@@ -227,6 +236,8 @@ class GateNormAttention(torch.nn.Module):
         super(GateNormAttention, self).__init__()
         self.only_coor_out = only_coor_out
 
+#这个super是再初始化父类，否者下面的内容是不能了解torch.nn.Module的内容的
+#这里设置为false的时候是进行联合更新的
 
 #这部分调用了等变注意力机制，
         self.att_layer_i = SE3EquivariantAttention(
