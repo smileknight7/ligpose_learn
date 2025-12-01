@@ -1,0 +1,43 @@
+{
+    "os": "Linux-5.4.0-216-generic-x86_64-with-debian-bullseye-sid",
+    "python": "3.6.13",
+    "heartbeatAt": "2025-11-23T02:27:46.806887",
+    "startedAt": "2025-11-23T02:27:43.644619",
+    "docker": null,
+    "gpu": "Tesla V100-SXM2-32GB",
+    "gpu_count": 5,
+    "cpu_count": 72,
+    "cuda": "10.2.89",
+    "args": [
+        "--batch_size",
+        "1",
+        "--lr",
+        "0.0001",
+        "--n_epoch",
+        "200",
+        "--max_len_after_sampling",
+        "400",
+        "--max_len_after_sampling_for_eval",
+        "400",
+        "--n_cycle",
+        "4",
+        "--node_hidden",
+        "64",
+        "--edge_hidden",
+        "32",
+        "--n_block",
+        "4"
+    ],
+    "state": "running",
+    "program": "/home/lpw/ligpose_learn/train/train_pdbbind_struct.py",
+    "codePath": "train/train_pdbbind_struct.py",
+    "git": {
+        "remote": "https://github.com/smileknight7/ligpose_learn.git",
+        "commit": "5ba0568aada126d554f0eaeaceb0f881b0a5dda8"
+    },
+    "email": "lpwll2023@gmail.com",
+    "root": "/home/lpw/ligpose_learn",
+    "host": "ubuntu",
+    "username": "lpw",
+    "executable": "/data/lpw/conda/envs/ligpose/bin/python"
+}

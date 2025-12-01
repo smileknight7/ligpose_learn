@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Current File",
+      "type": "python",							
+      "request": "launch",
+      "program": "${file}",                     // 当前文件
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",              // 工作目录
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "LD_LIBRARY_PATH": "$HOME/cuda-11.1/lib64:$LD_LIBRARY_PATH"
+      },
+      "justMyCode": false,                      // 可调试外部库
+      "stopOnEntry": true                       // 启动时停在第一行
+    }
+  ]
+}

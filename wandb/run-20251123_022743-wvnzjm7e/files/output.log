@@ -1,0 +1,52 @@
+>>> Start training loop
+Tensorboard CMD: tensorboard --port 1212 --logdir ./log
+[DEBUG] rank is: 0
+Begin training...
+Epoch [1/200], lr: 1.00e-04
+
+  20/2553 [..............................] - ETA: 11:50 - grad_loss: 145.8151 - coor_loss: 144.6708 - coor_metric: 72.3610 - rmsd_value: 724.0711 - rmsd_rate: 0.0000e+00 - aff_loss: 0.2049 - aff_metric: 0.2049 - p_x_mask_1_loss: 3.4915 - p_x_mask_2_loss: 2.6999 - l_x_mask_loss: 1.7619 - edge_mask_loss: 1.4401 - noise_loss: 0.0000e+00 - p_x_mask_1_metric: 3.4915 - p_x_mask_2_metric: 2.6999 - l_x_mask_metric: 1.7619 - edge_mask_metric: 1.4401 - noise_metric: 0.0000e+00
+Traceback (most recent call last):
+  File "/home/lpw/ligpose_learn/train/train_pdbbind_struct.py", line 404, in <module>
+    train_with_args(args, train)
+  File "/home/lpw/ligpose_learn/utils/training_utils.py", line 29, in train_with_args
+    train(int(args.gpu_list), None, None, args)
+  File "/home/lpw/ligpose_learn/train/train_pdbbind_struct.py", line 134, in train
+    for i, dic_data in enumerate(train_loader):
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/dataloader.py", line 521, in __next__
+    data = self._next_data()
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/dataloader.py", line 1183, in _next_data
+    return self._process_data(data)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/dataloader.py", line 1229, in _process_data
+    data.reraise()
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/_utils.py", line 425, in reraise
+    raise self.exc_type(msg)
+RuntimeError: Caught RuntimeError in DataLoader worker process 1.
+Original Traceback (most recent call last):
+  File "/home/lpw/ligpose_learn/utils/pdbbind_utils.py", line 427, in __getitem__
+    complex_graph = self.get_complex(f_name)         # 特点主要在这里
+  File "/home/lpw/ligpose_learn/utils/pdbbind_utils.py", line 487, in get_complex
+    fragment_data = np.load(f'{self.f_pkl_path}/{f_name}', allow_pickle=True)   # 这里还要再想一下对semi数据这里要使用ligand的坐标吗
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/numpy/lib/npyio.py", line 416, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+FileNotFoundError: [Errno 2] No such file or directory: '/data/lpw/ligpose/data/work_file/fragment_data/fragment_data/5wuk.npz'
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/home/lpw/ligpose_learn/utils/pdbbind_utils.py", line 431, in __getitem__
+    complex_graph = self.get_complex(random.choice(self.pdbbind_list))
+  File "/home/lpw/ligpose_learn/utils/pdbbind_utils.py", line 487, in get_complex
+    fragment_data = np.load(f'{self.f_pkl_path}/{f_name}', allow_pickle=True)   # 这里还要再想一下对semi数据这里要使用ligand的坐标吗
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/numpy/lib/npyio.py", line 416, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+FileNotFoundError: [Errno 2] No such file or directory: '/data/lpw/ligpose/data/work_file/fragment_data/fragment_data/4re2.npz'
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/_utils/worker.py", line 287, in _worker_loop
+    data = fetcher.fetch(index)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/_utils/fetch.py", line 44, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/torch/utils/data/_utils/fetch.py", line 44, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/lpw/ligpose_learn/utils/pdbbind_utils.py", line 434, in __getitem__
+    raise RuntimeError('Error in dataloader')
+
+  29/2553 [..............................] - ETA: 10:41 - grad_loss: 146.2475 - coor_loss: 145.1000 - coor_metric: 72.5742 - rmsd_value: 726.2315 - rmsd_rate: 0.0000e+00 - aff_loss: 0.2199 - aff_metric: 0.2199 - p_x_mask_1_loss: 3.4619 - p_x_mask_2_loss: 2.6849 - l_x_mask_loss: 1.7283 - edge_mask_loss: 1.4006 - noise_loss: 0.0000e+00 - p_x_mask_1_metric: 3.4619 - p_x_mask_2_metric: 2.6849 - l_x_mask_metric: 1.7283 - edge_mask_metric: 1.4006 - noise_metric: 0.0000e+00

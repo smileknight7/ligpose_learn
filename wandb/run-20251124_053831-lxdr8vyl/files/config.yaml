@@ -1,0 +1,256 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.21
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.6.13
+    start_time: 1763962711
+    t:
+      1:
+      - 1
+      - 55
+      - 77
+      2:
+      - 1
+      - 55
+      - 77
+      3:
+      - 1
+      - 13
+      - 16
+      4: 3.6.13
+      5: 0.12.21
+      8:
+      - 5
+aff_scale:
+  desc: null
+  value: 10
+batch_size:
+  desc: null
+  value: 1
+blind_training:
+  desc: null
+  value: false
+c_npz_path:
+  desc: null
+  value: ./
+cache_path:
+  desc: null
+  value: ./cache
+choose_start_weight:
+  desc: null
+  value: null
+coor_scale:
+  desc: null
+  value: 10
+core_list_path:
+  desc: null
+  value: null
+data_list_path:
+  desc: null
+  value: /data/lpw/ligpose/data/work_file/tmp
+data_split_rate:
+  desc: null
+  value:
+  - 0.75
+  - 0.05
+  - 0.2
+dropout:
+  desc: null
+  value: 0.1
+edge_hidden:
+  desc: null
+  value: 32
+edge_input_channel:
+  desc: null
+  value: 6
+f_pkl_path:
+  desc: null
+  value: /data/lpw/ligpose/data/work_file/fragment_data/fragment_data
+fragment:
+  desc: null
+  value: true
+gamma_1:
+  desc: null
+  value: 1.0
+gamma_2:
+  desc: null
+  value: 1
+gamma_edge:
+  desc: null
+  value: 0.1
+gamma_l_x:
+  desc: null
+  value: 0.1
+gamma_noise:
+  desc: null
+  value: 0.1
+gamma_p_x_1:
+  desc: null
+  value: 0.1
+gamma_p_x_2:
+  desc: null
+  value: 0.1
+gpu_list:
+  desc: null
+  value: '0'
+l_npz_path:
+  desc: null
+  value: ./
+ligand_input_channel:
+  desc: null
+  value: 45
+local_rank:
+  desc: null
+  value: 0
+log_dir:
+  desc: null
+  value: ./log
+log_drop_head_epoch:
+  desc: null
+  value: 0
+log_env:
+  desc: null
+  value: py36
+log_port:
+  desc: null
+  value: 1212
+lr:
+  desc: null
+  value: 0.0001
+lr_decay:
+  desc: null
+  value: 0.99
+lr_sche_batch_wise:
+  desc: null
+  value: null
+mask_rate_l:
+  desc: null
+  value: 0.15
+mask_rate_p:
+  desc: null
+  value: 0.15
+max_len_after_sampling:
+  desc: null
+  value: 400
+max_len_after_sampling_for_eval:
+  desc: null
+  value: 400
+max_len_before_sampling:
+  desc: null
+  value: 800
+max_len_ligand:
+  desc: null
+  value: 150
+max_ligand_atom_init_distance:
+  desc: null
+  value: 10
+max_ligand_atom_pretrain_distance:
+  desc: null
+  value: 30
+mute_progbar:
+  desc: null
+  value: false
+n_block:
+  desc: null
+  value: 4
+n_cycle:
+  desc: null
+  value: 4
+n_epoch:
+  desc: null
+  value: 200
+n_head:
+  desc: null
+  value: 8
+node_hidden:
+  desc: null
+  value: 64
+noise_distance:
+  desc: null
+  value: 2.0
+num_workers:
+  desc: null
+  value: 4
+original_path:
+  desc: null
+  value: /home/dtj/work_site/prepare_data/complex/v2020-PL
+p_npz_path:
+  desc: null
+  value: ./
+pdbbind_path:
+  desc: null
+  value: /data/lpw/ligpose/data/work_file/tmp
+persistent_workers:
+  desc: null
+  value: true
+port:
+  desc: null
+  value: '14406'
+protein_input_channel:
+  desc: null
+  value: 79
+regenerate_data_list:
+  desc: null
+  value: false
+restart:
+  desc: null
+  value: 0
+sample_pocket_flag:
+  desc: null
+  value: true
+seed:
+  desc: null
+  value: 123
+select_center_type:
+  desc: null
+  value: any_atom
+select_pocket_type:
+  desc: null
+  value: CA
+semi_rate:
+  desc: null
+  value: 0.0
+start_new_tensorboard:
+  desc: null
+  value: false
+update_together:
+  desc: null
+  value: false
+use_amp_mix:
+  desc: null
+  value: false
+use_multi_gpu:
+  desc: null
+  value: false
+use_multi_gpu_for_loss_object:
+  desc: null
+  value: false
+use_seed:
+  desc: null
+  value: true
+vis:
+  desc: null
+  value: false
+vis_path:
+  desc: null
+  value: ./vis
+vocab_processed_path:
+  desc: null
+  value: /data/lpw/ligpose/data/work_file/pdbbind_listvocab.pkl
+weight_decay:
+  desc: null
+  value: 0.0
+weight_path:
+  desc: null
+  value: ./weights/semi
+weight_save_freq:
+  desc: null
+  value: 5
+world_size:
+  desc: null
+  value: 1

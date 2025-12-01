@@ -1,0 +1,22 @@
+biopandas==0.3.0
+einops==0.4.1
+keras_progbar==1.0.0
+matplotlib==3.3.4
+numpy==1.19.5
+pandas==1.1.5
+ray==1.13.0
+#rdkit==2023.3.2         rdkit=2021.03.4   兼容版本
+#scikit_learn==1.3.0     scikit-learn=0.24.2兼容版本
+scipy==1.5.3
+seaborn==0.11.2
+#torch==1.9.0+cu111
+torch_geometric==2.0.1
+#torch_scatter==2.0.7
+#torch-sparse==0.6.10
+tqdm==4.64.0
+#ray
+#seaborn
+#biopandas
+#debugpy
+#einops
+#tensorboard

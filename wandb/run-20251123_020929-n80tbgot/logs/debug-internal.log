@@ -1,0 +1,83 @@
+2025-11-23 02:09:30,697 INFO    MainThread:1080508 [internal.py:wandb_internal():93] W&B internal server running at pid: 1080508, started at: 2025-11-23 02:09:30.697134
+2025-11-23 02:09:30,700 INFO    WriterThread:1080508 [datastore.py:open_for_write():75] open: /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/run-n80tbgot.wandb
+2025-11-23 02:09:30,706 DEBUG   SenderThread:1080508 [sender.py:send():236] send: header
+2025-11-23 02:09:30,706 DEBUG   SenderThread:1080508 [sender.py:send():236] send: run
+2025-11-23 02:09:59,986 DEBUG   HandlerThread:1080508 [handler.py:handle_request():140] handle_request: shutdown
+2025-11-23 02:09:59,987 INFO    HandlerThread:1080508 [handler.py:finish():806] shutting down handler
+2025-11-23 02:10:00,707 INFO    WriterThread:1080508 [datastore.py:close():279] close: /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/run-n80tbgot.wandb
+2025-11-23 02:10:05,554 ERROR   SenderThread:1080508 [retry.py:__call__():132] Retry attempt failed:
+Traceback (most recent call last):
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 468, in _make_request
+    six.raise_from(e, None)
+  File "<string>", line 3, in raise_from
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 463, in _make_request
+    httplib_response = conn.getresponse()
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/http/client.py", line 1379, in getresponse
+    response.begin()
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/http/client.py", line 311, in begin
+    version, status, reason = self._read_status()
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/http/client.py", line 272, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/socket.py", line 586, in readinto
+    return self._sock.recv_into(b)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/ssl.py", line 1012, in recv_into
+    return self.read(nbytes, buffer)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/ssl.py", line 874, in read
+    return self._sslobj.read(len, buffer)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/ssl.py", line 631, in read
+    v = self._sslobj.read(len, buffer)
+socket.timeout: The read operation timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/adapters.py", line 450, in send
+    timeout=timeout
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 803, in urlopen
+    method, url, error=e, _pool=self, _stacktrace=sys.exc_info()[2]
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/util/retry.py", line 552, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/packages/six.py", line 770, in reraise
+    raise value
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 723, in urlopen
+    chunked=chunked,
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 470, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/urllib3/connectionpool.py", line 359, in _raise_timeout
+    self, url, "Read timed out. (read timeout=%s)" % timeout_value
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.wandb.ai', port=443): Read timed out. (read timeout=10)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/wandb/sdk/lib/retry.py", line 108, in __call__
+    result = self._call_fn(*args, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/wandb/sdk/internal/internal_api.py", line 158, in execute
+    return self.client.execute(*args, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 52, in execute
+    result = self._get_result(document, *args, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 60, in _get_result
+    return self.transport.execute(document, *args, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/transport/requests.py", line 38, in execute
+    request = requests.post(self.url, **post_args)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/api.py", line 117, in post
+    return request('post', url, data=data, json=json, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/api.py", line 61, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/sessions.py", line 529, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/sessions.py", line 645, in send
+    r = adapter.send(request, **kwargs)
+  File "/data/lpw/conda/envs/ligpose/lib/python3.6/site-packages/requests/adapters.py", line 532, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.wandb.ai', port=443): Read timed out. (read timeout=10)
+2025-11-23 02:11:01,527 INFO    SenderThread:1080508 [dir_watcher.py:__init__():216] watching files in: /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/files
+2025-11-23 02:11:01,528 INFO    SenderThread:1080508 [sender.py:_start_run_threads():818] run started: n80tbgot with start time 1763863769
+2025-11-23 02:11:01,528 INFO    SenderThread:1080508 [sender.py:finish():1114] shutting down sender
+2025-11-23 02:11:01,529 INFO    SenderThread:1080508 [dir_watcher.py:finish():353] shutting down directory watcher
+2025-11-23 02:11:02,528 INFO    SenderThread:1080508 [dir_watcher.py:finish():383] scan: /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/files
+2025-11-23 02:11:02,528 INFO    SenderThread:1080508 [dir_watcher.py:finish():397] scan save: /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/files/config.yaml config.yaml
+2025-11-23 02:11:02,528 INFO    SenderThread:1080508 [file_pusher.py:finish():171] shutting down file pusher
+2025-11-23 02:11:02,529 INFO    SenderThread:1080508 [file_pusher.py:join():176] waiting for file pusher
+2025-11-23 02:11:06,116 INFO    Thread-9  :1080508 [upload_job.py:push():138] Uploaded file /home/lpw/ligpose_learn/wandb/run-20251123_020929-n80tbgot/files/config.yaml
+2025-11-23 02:11:09,059 INFO    MainThread:1080508 [internal.py:handle_exit():80] Internal process exited

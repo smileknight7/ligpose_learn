@@ -1,0 +1,5 @@
+﻿protein,ligand,ref_pocket_center
+example_files/3g0g/3g0g_protein.pdb,example_files/3g0g/3g0g_ligand.mol2,example_files/3g0g/3g0g_ligand.mol2
+example_files/4r6e/4r6e_protein.pdb,example_files/4r6e/4r6e_ligand.mol2,example_files/4r6e/4r6e_ligand.mol2
+example_files/5a7b/5a7b_protein.pdb,example_files/5a7b/5a7b_ligand.mol2,example_files/5a7b/5a7b_ligand.mol2
+example_files/6qlt/6qlt_protein.pdb,example_files/6qlt/6qlt_ligand.mol2,example_files/6qlt/6qlt_ligand.mol2
