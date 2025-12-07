@@ -5,7 +5,6 @@ sys.path.append('/'.join(os.path.abspath(__file__).split('/')[:-1]))
 import pickle
 from tqdm import tqdm, trange
 from collections import defaultdict
-
 import torch
 import re
 import numpy as np
@@ -227,20 +226,20 @@ def get_pocket_center(df_pocket):
 
 #另一种计算方法     ----> 这个应该是提供给semi数据进行使用的(当前使用的其实还是ligand的真实位置)
 
-# def get_pocket_center(pocket_pdb_path):
-#     parser = PDBParser(QUIET=True)
-#     structure = parser.get_structure('pocket', pocket_pdb_path)
+def get_semi_pocket_center(pocket_pdb_path):
+    ppdb = PandasPdb().read_pdb(pocket_pdb_path)
+    df = ppdb.df['ATOM']
 
-#     atom_coords = []
-#     for model in structure:
-#         for chain in model:
-#             for residue in chain:
-#                 for atom in residue:
-#                     atom_coords.append(atom.coord)
+    # 如果想使用 CA 原子更稳定
+    df_ca = df[df['atom_name'] == 'CA']
+    if len(df_ca) > 0:
+        coords = df_ca[['x_coord', 'y_coord', 'z_coord']].to_numpy(dtype=float)
+    else:
+        # 没有 CA 则 fallback 到所有原子
+        coords = df[['x_coord', 'y_coord', 'z_coord']].to_numpy(dtype=float)
 
-#     atom_coords = np.array(atom_coords)
-#     center_coor = atom_coords.mean(axis=0)  # 几何中心
-#     return center_coor
+    center = coords.mean(axis=0)   # shape (3,)
+    return center.astype(np.float32)
 
 
 def get_pocket_pdb_info(protein_mol):
@@ -375,24 +374,26 @@ def process_pdbbind(pdb_id, data_path, suppl_path, cache_path, dis=15):
     pdb_in_path = f'{data_path}/{pdb_id}/{pdb_id}_protein.pdb'
     biodf_protein = PandasPdb()
     biodf_protein.read_pdb(pdb_in_path)
-    df_protein = biodf_protein.df['ATOM']                                         # 取出['ATOM']对应的dataframe
+    df_protein = biodf_protein.df['ATOM']                                            # 取出['ATOM']对应的dataframe
 
 
     df_pocket = get_pocket(df_protein, ligand_true_posi, dis=dis, any_atom=True)  #得到(df_pocket, center_coor)这个原子，其中df_pocket是dataframe，center_coor是(num_ligand_atom, 3)
     
-    biodf_protein.df['ATOM'] = df_pocket                                           # 此时biodf_protein.df['ATOM']已经变成了pocket信息
+    biodf_protein.df['ATOM'] = df_pocket                                             # 此时biodf_protein.df['ATOM']已经变成了pocket信息
     tmp_pocket_file = cache_path + f'/{pdb_id}.pdb'
-    biodf_protein.to_pdb(tmp_pocket_file)                                     # 将口袋信息保存为pdb文件
+    biodf_protein.to_pdb(tmp_pocket_file)                                       # 将口袋信息保存为pdb文件
     
 
     protein_lines = open(tmp_pocket_file, 'r').readlines()
-    protein_string = ''.join(protein_atom_filter(protein_lines))         # 过滤出含有ATOM的行（预留了只取主链原子的接口）
+    protein_string = ''.join(protein_atom_filter(protein_lines))           # 过滤出含有ATOM的行（预留了只取主链原子的接口）
     protein_mol = Chem.MolFromPDBBlock(protein_string)
     if protein_mol == None:
         # use default pocket
         lines = open(f'{data_path}/{pdb_id}/{pdb_id}_pocket.pdb', 'r').readlines()
         protein_string = ''.join(protein_atom_filter(lines))
         protein_mol = Chem.MolFromPDBBlock(protein_string)                           # 这里转为mol文件的时候会添加键信息
+
+
 
 # 提取蛋白质的节点和边特征
     protein_node_features = get_node_feature(protein_mol, 'protein')    # 返回(pocket_atoms, 78)的数组

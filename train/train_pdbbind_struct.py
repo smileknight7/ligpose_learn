@@ -17,7 +17,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 
 from model.layers import LigPoseStruct
 from model.loss import StructLoss
-from utils.pdbbind_utils import split_pdbbind, ComplexStructDataset, collate_struct
+from utils.pdbbind_utils import split_pdbbind, get_semi_list, load_semi_list, ComplexStructDataset, collate_struct
 from model.param_setting import get_LigPose_params
 from utils.training_utils import *
 from utils.common import *
@@ -69,19 +69,21 @@ def train(rank, world_size, port, args):
         if rank == 0 or not args.use_multi_gpu:
             print('Generating data list...')
         # fragment_base
+        semi_list = get_semi_list(args.p_npz_path, args.l_npz_path, args.semi_list_path, args.seed )
         train_list, val_list, test_list = split_pdbbind(args.data_list_path, args.data_split_rate, core_list_path=args.core_list_path)
-    
+        semi_list = get_semi_list(args.p_npz_path, args.l_npz_path, args.semi_list_path, args.seed )
         #train_list, val_list, test_list = split_pdbbind(args.pdbbind_path, args.data_split_rate, core_list_path=args.core_list_path)
                                                                                                                               # 构建文件名字的字符串列表，下面的代码将名字列表保存为了.txt
 # 这里也可以改一下，先构建dataset，再进行划分
         save_data_split(train_list, val_list, test_list, path=args.data_list_path)
     train_list, val_list, test_list = load_data_split(path=args.data_list_path, blind_training=args.blind_training)
+    semi_list = load_semi_list(args.semi_list_path)
     if rank == 0 or not args.use_multi_gpu:
 
 
         print(f'train_list: {len(train_list)}, val_list: {len(val_list)}, test_list: {len(test_list)}')
-    train_dataset = ComplexStructDataset('train', args, train_list, cache_path=args.cache_path)
-    val_dataset = ComplexStructDataset('val', args, val_list, cache_path=args.cache_path)
+    train_dataset = ComplexStructDataset('train', args, train_list, semi_list, cache_path=args.cache_path)
+    val_dataset = ComplexStructDataset('val', args, val_list, semi_list, cache_path=args.cache_path)
     train_loader, train_sampler, val_loader, val_sampler = get_dataloader(args, train_dataset, val_dataset,
                                                                           world_size, collate_fn=collate_struct)   # 这里的collate_struct是作为函数进行传入，用def dataloader中传入的batch_size构建batch数据
     train_loader.dataset.training = True
@@ -272,10 +274,10 @@ if __name__ == '__main__':
                         help='path to prepared data')                    
     # data source (semi)
     parser.add_argument('--l_npz_path', type=str,
-                        default='./',
+                        default='/home/smileknight/data/workfile/ligpose/l_p_pretrain/ligand',
                         help='dataset path')
     parser.add_argument('--p_npz_path', type=str,
-                        default='./',
+                        default='/home/smileknight/data/workfile/ligpose/l_p_pretrain/protein',
                         help='dataset path')
 
 
@@ -291,6 +293,9 @@ if __name__ == '__main__':
     parser.add_argument('--data_list_path', type=str,
                         default='/data/lpw/ligpose/data/work_file/pdbbind_other',
                         help='path to data list, core_test/core_test_reduce_train/som_pretrain/som_pretrain_reduce_train/zinc250k') # 这里面有预训练的部分内容啊
+    parser.add_argument('--semi_list_path', type=str,
+                        default='/home/smileknight/data/workfile/ligpose/l_p_pretrain/semi_list.txt',
+                        help='path to semi list')
     parser.add_argument('--data_split_rate', type=str,
                         default='0.75-0.05-0.2',
                         help='rate for training, validation and testing. 0.75-0.05-0.2/0.95-0.025-0.025')

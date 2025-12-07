@@ -9,8 +9,7 @@
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",              // 工作目录
       "env": {
-        "PYTHONPATH": "${workspaceFolder}",
-        "LD_LIBRARY_PATH": "$HOME/cuda-11.1/lib64:$LD_LIBRARY_PATH"
+        "PYTHONPATH": "${workspaceFolder}"
       },
       "justMyCode": false,                      // 可调试外部库
       "stopOnEntry": true                       // 启动时停在第一行

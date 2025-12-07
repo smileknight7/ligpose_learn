@@ -12,7 +12,7 @@ import scipy.spatial
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem
-
+from pathlib import Path
 
 
 import torch
@@ -60,6 +60,32 @@ def split_pdbbind(pdbbind_path, data_split_rate, core_list_path=None):
         train_list = rest_list[cut_2:]
 
     return train_list, val_list, test_list
+
+def get_semi_list(protein_dir, ligand_dir, output_txt, seed):
+    protein_names = [f.stem for f in Path(protein_dir).glob("*.npz")]
+    ligand_names = [f.stem for f in Path(ligand_dir).glob("*.npz")]
+    protein_names.sort()
+    ligand_names.sort()
+    print(ligand_names)
+    random.seed(seed)
+    random.shuffle(ligand_names)
+    random.shuffle(protein_names)
+    n = min(len(protein_names), len(ligand_names))
+    protein_sel = protein_names[:n]
+    ligand_sel = ligand_names[:n]
+    with open(output_txt, "w") as f:
+        for p_name, l_name in zip(protein_sel, ligand_sel):
+            f.write(f"{p_name}-{l_name}semi\n")
+def load_semi_list(semi_list_path):
+    semi_list = []
+    with open(semi_list_path, "r") as f:
+        for line in f:
+            semi_list.append(line.strip())
+    return semi_list
+# 这里要测试一下写成什么样子
+
+
+
 #有core_list_path时是要将core_list_path中的数据作为测试集，其余数据再进行划分训练集和验证集
 #data_split_rate default'0.75-0.05-0.2',
 
@@ -379,7 +405,7 @@ def collate_struct(batch_list):                                                 
 
 # 构建dataset数据
 class ComplexStructDataset(torch.utils.data.Dataset):
-    def __init__(self, mode, args, data_list, cache_path='./cache'):
+    def __init__(self, mode, args, data_list, semi_list=None, cache_path='./cache'):
         self.mode = mode
         self.pdbbind_list = data_list
         self.fragment = args.fragment
@@ -388,7 +414,7 @@ class ComplexStructDataset(torch.utils.data.Dataset):
         self.original_path = args.original_path
 
         # unlabeled data source
-        self.semi_list = [i.split('.')[0] for i in os.listdir(args.c_npz_path) if i.endswith('npz')]
+        self.semi_list = semi_list
         self.l_npz_path = args.l_npz_path                               # 这里就是半监督训练有问题的原因了(好像没有构建半监督的数据)
         self.p_npz_path = args.p_npz_path
         self.c_npz_path = args.c_npz_path
@@ -426,9 +452,12 @@ class ComplexStructDataset(torch.utils.data.Dataset):
 
 
     def __getitem__(self, i):
-        if self.mode == 'train':                                                    # 生成随机数比较semi_rate决定是否使用该数据作为半监督数据
-            f_name = self.pdbbind_list[i] if torch.rand(1) > self.semi_rate else random.choice(self.semi_list)  
-            
+        if self.mode == 'train':
+            if torch.rand(1) > self.semi_rate:
+                f_name = self.pdbbind_list[i]
+            else:
+                f_name = random.choice(self.semi_list)  # 直接在 semi pool 中抽
+
         else:
             f_name = self.pdbbind_list[i]
         
@@ -493,9 +522,9 @@ class ComplexStructDataset(torch.utils.data.Dataset):
 
 
 
-            aff_true = -1                                # semi中特殊设置的内容
+            aff_true = -1                                                       # semi中特殊设置的内容
             aff_mask = 0
-            ref_l_coor = dic_pocket['center_coor']       # 这里暂时有问题（使用的还是liagnd_true_pos）
+            ref_l_coor = dic_pocket['center_coor']                              # 这里暂时有问题（使用的还是liagnd_true_pos）
             coor_mask = 0
 
 
@@ -559,7 +588,10 @@ class ComplexStructDataset(torch.utils.data.Dataset):
         ligand_distmap = ligand_distmap / self.coor_scale
         
         # 使用新的对数变换方法处理亲和力
-        aff_true = math.log(aff_true)
+        if data_type == 'pdbbind':
+            aff_true = math.log(aff_true)
+        else:
+            aff_true = aff_true
         aff_true = aff_true / self.aff_scale
 
 
